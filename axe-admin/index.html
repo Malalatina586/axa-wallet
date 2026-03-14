@@ -379,6 +379,21 @@ tr:hover td{background:rgba(255,255,255,0.02);}
   <div class="page" id="page-transactions">
     <div class="page-header">
       <div>
+        <div class="page-title">Transactions P2P Ariary</div>
+        <div class="page-sub">En attente d'approbation</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>Montant</th><th>Frais</th><th>Destinataire</th><th>Date</th><th>Statut</th><th>Action</th></tr>
+        </thead>
+        <tbody id="p2p-ariary-table"></tbody>
+      </table>
+    </div>
+
+    <div class="page-header" style="margin-top:32px;">
+      <div>
         <div class="page-title">Toutes les Transactions</div>
         <div class="page-sub">Historique complet</div>
       </div>
@@ -1125,7 +1140,7 @@ async function loadRetraits() {
         <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
         <td class="mono">${d.mvola || 'N/A'}</td>
         <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
-        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span></td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : d.statut === 'approved' ? '✓ Approuvé' : '✓ Traité'}</span></td>
         <td><button class="btn btn-view" onclick="viewRetrait('${d.id}')">Voir</button></td>
       </tr>
     `).join('')
@@ -1136,6 +1151,9 @@ async function loadRetraits() {
 
 async function loadTransactions() {
   try {
+    // Load P2P Ariary pending
+    await loadP2PAriary()
+    
     const { data, error } = await sb.from('transactions').select('*, users(nom)').order('created_at', { ascending: false }).limit(50)
     if (error) throw error
     
@@ -1154,6 +1172,72 @@ async function loadTransactions() {
     `).join('')
   } catch (err) {
     console.error('Erreur chargement transactions:', err)
+  }
+}
+
+async function loadP2PAriary() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*, users(nom, wallet:users!recipient_id(address))')
+      .eq('type', 'p2p_ariary')
+      .eq('statut', 'pending')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('p2p-ariary-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--sub);">Aucune transaction en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${d.frais?.toFixed(8) || 0} AXE</td>
+        <td class="mono">${d.recipient_display_id || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveP2PAriary('${d.id}', '${d.user_id}', ${d.montant})">Approuver</button>
+        </td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement P2P Ariary:', err)
+  }
+}
+
+async function approveP2PAriary(transactionId, userId, amountAriary) {
+  if (!confirm(`Approuver cette transaction P2P Ariary de Ar ${amountAriary?.toLocaleString()} avec collecte de frais ?`)) return
+  
+  try {
+    // Get fee percentage from config
+    const { data: config } = await sb.from('config').select('fee_p2p').eq('id', 1).single()
+    const feePct = config?.fee_p2p || 1
+    
+    // Call RPC to approve and collect fee
+    const { data: result, error: rpcError } = await sb.rpc('approve_p2p_ariary_with_fee', {
+      p_transaction_id: transactionId,
+      p_user_id: userId,
+      p_fee_percentage: feePct
+    })
+    
+    if (rpcError) throw rpcError
+    if (!result.success) throw new Error(result.error)
+    
+    // Send fees to wallet asynchronously
+    if (result.fee_amount > 0) {
+      sendFeesToWallet(result.fee_amount).catch(err => console.error('Error sending fees:', err))
+    }
+    
+    alert(`✓ P2P Ariary approuvé!\\n💰 Frais collectés: ${result.fee_amount.toFixed(8)} AXE`)
+    await loadTransactions()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
   }
 }
 
@@ -1233,10 +1317,16 @@ async function viewRetrait(id) {
     
     const btn = document.getElementById('modal-action-btn')
     if (data.statut === 'pending') {
-      btn.textContent = '✓ Marquer comme envoyé'
+      btn.textContent = '✓ Approuver ce retrait'
       btn.style.background = 'rgba(34,197,94,0.15)'
       btn.style.color = 'var(--green)'
       btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      btn.onclick = () => approveRetrait(id)
+    } else if (data.statut === 'approved') {
+      btn.textContent = '✓ Marquer comme envoyé'
+      btn.style.background = 'rgba(168,85,247,0.15)'
+      btn.style.color = 'var(--purple)'
+      btn.style.borderColor = 'rgba(168,85,247,0.3)'
       btn.onclick = () => completeRetrait(id)
     } else {
       btn.textContent = '✓ Déjà envoyé'
@@ -1700,16 +1790,76 @@ function closeModal() {
 }
 
 async function approveDepot(id) {
-  if (!confirm('Approuver ce dépôt ?')) return
+  if (!confirm('Approuver ce dépôt et collecter les frais ?')) return
   
   try {
-    const { error } = await sb.from('depots').update({ statut: 'approved' }).eq('id', id)
-    if (error) throw error
+    // Get depot details to get user_id and montant_ariary
+    const { data: depot, error: fetchError } = await sb.from('depots').select('user_id, montant_ariary').eq('id', id).single()
+    if (fetchError) throw fetchError
     
-    alert('✓ Dépôt approuvé!')
+    // Get fee percentage from config
+    const { data: config } = await sb.from('config').select('fee_depot').eq('id', 1).single()
+    const feePct = config?.fee_depot || 2
+    
+    // Call RPC to approve and collect fee
+    const { data: result, error: rpcError } = await sb.rpc('approve_depot_with_fee', {
+      p_depot_id: id,
+      p_user_id: depot.user_id,
+      p_montant_ariary: depot.montant_ariary,
+      p_fee_percentage: feePct
+    })
+    
+    if (rpcError) throw rpcError
+    if (!result.success) throw new Error(result.error)
+    
+    // Send fees to wallet asynchronously (non-blocking)
+    if (result.fee_amount > 0) {
+      sendFeesToWallet(result.fee_amount).catch(err => console.error('Error sending fees:', err))
+    }
+    
+    alert(`✓ Dépôt approuvé!\n💰 Frais collectés: ${result.fee_amount.toFixed(8)} AXE`)
     closeModal()
     await loadDepots()
     await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function approveRetrait(id) {
+  if (!confirm('Approuver ce retrait et collecter les frais ?')) return
+  
+  try {
+    // Get retrait details
+    const { data: retrait, error: fetchError } = await sb.from('retraits').select('user_id, montant_ariary').eq('id', id).single()
+    if (fetchError) throw fetchError
+    
+    // Get fee percentage from config
+    const { data: config } = await sb.from('config').select('fee_retrait').eq('id', 1).single()
+    const feePct = config?.fee_retrait || 3
+    
+    // Call RPC to approve and collect fee
+    const { data: result, error: rpcError } = await sb.rpc('approve_retrait_with_fee', {
+      p_retrait_id: id,
+      p_user_id: retrait.user_id,
+      p_montant_ariary: retrait.montant_ariary,
+      p_fee_percentage: feePct
+    })
+    
+    if (rpcError) throw rpcError
+    if (!result.success) throw new Error(result.error)
+    
+    // Send fees to wallet asynchronously
+    if (result.fee_amount > 0) {
+      sendFeesToWallet(result.fee_amount).catch(err => console.error('Error sending fees:', err))
+    }
+    
+    alert(`✓ Retrait approuvé!\n💰 Frais collectés: ${result.fee_amount.toFixed(8)} AXE`)
+    closeModal()
+    await loadRetraits()
+    await updateBadges()
+    await loadDashboardStats()
   } catch (err) {
     alert('Erreur : ' + err.message)
   }
@@ -1728,6 +1878,29 @@ async function completeRetrait(id) {
     await updateBadges()
   } catch (err) {
     alert('Erreur : ' + err.message)
+  }
+}
+
+// Send accumulated fees to wallet_admin_fee on blockchain
+async function sendFeesToWallet(amountAXE) {
+  try {
+    // Get wallet admin fee address from config
+    const { data: config } = await sb.from('config').select('wallet_admin_fee').eq('id', 1).single()
+    if (!config?.wallet_admin_fee) {
+      console.warn('wallet_admin_fee not configured')
+      return
+    }
+    
+    // Note: This is a backend operation that would be done by a secure service
+    // For now, we just log it and it can be picked up by a cron job
+    console.log(`Fees: ${amountAXE} AXE → ${config.wallet_admin_fee}`)
+    
+    // TODO: In production, call a secure backend endpoint that:
+    // 1. Uses wallet_admin_fee private key (stored securely on backend)
+    // 2. Sends the AXE to wallet_admin_fee wallet
+    // 3. Records the tx hash in fees_collected table
+  } catch (err) {
+    console.error('Error sending fees:', err)
   }
 }
 
@@ -1763,6 +1936,8 @@ function switchPage(page, el) {
     loadUsers()
   } else if (page === 'staking') {
     loadStakingConfig()
+  } else if (page === 'transactions') {
+    loadTransactions()
   }
 }
 </script>

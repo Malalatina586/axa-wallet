@@ -23,6 +23,7 @@ export type User = {
   email?: string
   nom: string
   telephone: string
+  mvola?: string  // User's Mvola number for deposits/retraits
   role?: 'admin' | 'user'
   balance_axe: number
   balance_ariary: number

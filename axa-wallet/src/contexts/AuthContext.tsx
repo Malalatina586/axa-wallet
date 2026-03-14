@@ -22,6 +22,9 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<{error: any}>
   signOut: () => Promise<void>
   refreshUser: () => Promise<void>
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{success: boolean; error?: string}>
+  changeEmail: (newEmail: string) => Promise<{success: boolean; error?: string}>
+  changeMvola: (mvola: string) => Promise<{success: boolean; error?: string}>
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
@@ -98,8 +101,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session) await fetchUser(session.user.id)
   }
 
+  async function changePassword(oldPassword: string, newPassword: string) {
+    try {
+      if (!session?.user.email) return { success: false, error: 'Email not found' }
+      
+      // First verify old password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: session.user.email,
+        password: oldPassword,
+      })
+      
+      if (signInError) return { success: false, error: 'Mot de passe actuel incorrect' }
+      
+      // Update password
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) return { success: false, error: error.message }
+      
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
+  async function changeEmail(newEmail: string) {
+    try {
+      const { error } = await supabase.auth.updateUser({ email: newEmail })
+      if (error) return { success: false, error: error.message }
+      
+      // Email change requires confirmation, so we just update the database
+      if (user) {
+        await supabase.from('users').update({ email: newEmail }).eq('id', user.id)
+        await refreshUser()
+      }
+      
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
+  async function changeMvola(mvola: string) {
+    try {
+      if (!user) return { success: false, error: 'User not found' }
+      
+      const { error } = await supabase.from('users').update({ mvola }).eq('id', user.id)
+      if (error) throw error
+      
+      await refreshUser()
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err.message }
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, refreshUser, changePassword, changeEmail, changeMvola }}>
       {children}
     </AuthContext.Provider>
   )
