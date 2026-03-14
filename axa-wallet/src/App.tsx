@@ -12,6 +12,7 @@ import StakingPage from './pages/Staking'
 import P2PPage from './pages/P2P'
 import InvestPage from './pages/Invest'
 import ProfilPage from './pages/Profil'
+import SecuritePage from './pages/Securite'
 
 function AppRoutes() {
   const { session, user, loading } = useAuth()
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/p2p" element={<P2PPage />} />
         <Route path="/invest" element={<InvestPage />} />
         <Route path="/profil" element={<ProfilPage />} />
+        <Route path="/securite" element={<SecuritePage />} />
       </Routes>
     </BrowserRouter>
   )
