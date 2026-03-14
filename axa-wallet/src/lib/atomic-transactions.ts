@@ -173,8 +173,8 @@ export async function validateP2PTransfer(
       }
 
       // Calculate fee in AXE (amount valorized in AXE)
-      // 1 AXE = 1000 Ariary, so value_in_axe = amount / 1000
-      const valueInAXE = amount / 1000
+      // 1 AXE = 220 Ariary (configured in backoffice), so value_in_axe = amount / 220
+      const valueInAXE = amount / 220
       const feeInAXE = valueInAXE * feePercentage / 100
 
       // Check AXE balance for fee

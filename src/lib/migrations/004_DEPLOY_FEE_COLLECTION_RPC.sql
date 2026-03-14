@@ -24,8 +24,8 @@ BEGIN
   END IF;
 
   -- Calculate fee: amount_ariary -> AXE
-  -- 1 AXE = 1000 Ariary
-  v_fee_amount := (v_transaction_data.montant / 1000.0) * (p_fee_percentage / 100.0);
+  -- 1 AXE = 220 Ariary
+  v_fee_amount := (v_transaction_data.montant / 220.0) * (p_fee_percentage / 100.0);
 
   -- Check if user has enough AXE for fee
   IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id AND balance_axe >= v_fee_amount) THEN
@@ -76,7 +76,8 @@ DECLARE
   v_fee_amount NUMERIC;
 BEGIN
   -- Calculate fee: montant_ariary -> AXE
-  v_fee_amount := (p_montant_ariary / 1000.0) * (p_fee_percentage / 100.0);
+  -- 1 AXE = 220 Ariary
+  v_fee_amount := (p_montant_ariary / 220.0) * (p_fee_percentage / 100.0);
 
   -- Check if user has enough AXE for fee
   IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id AND balance_axe >= v_fee_amount) THEN
@@ -127,7 +128,8 @@ DECLARE
   v_fee_amount NUMERIC;
 BEGIN
   -- Calculate fee: montant_ariary -> AXE
-  v_fee_amount := (p_montant_ariary / 1000.0) * (p_fee_percentage / 100.0);
+  -- 1 AXE = 220 Ariary
+  v_fee_amount := (p_montant_ariary / 220.0) * (p_fee_percentage / 100.0);
 
   -- Check if user has enough AXE for fee
   IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id AND balance_axe >= v_fee_amount) THEN
