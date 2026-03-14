@@ -24,9 +24,9 @@ export const NETWORK_CONFIG = {
 export const SUPPORTED_CURRENCIES = ['AXE', 'USDT']
 
 export const RATES = {
-  AXE_ARIARY: 1000,
+  AXE_ARIARY: 220,
   AXE_USDT: 0.045,
-  USDT_ARIARY: 4800,
+  USDT_ARIARY: 4889,
 }
 
 export const formatNumber = (n: number, decimals = 2) =>
