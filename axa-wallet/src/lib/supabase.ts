@@ -19,6 +19,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 // Types
 export type User = {
   id: string
+  display_id?: string  // Stylized ID (e.g., "1548AXE5789")
   email?: string
   nom: string
   telephone: string

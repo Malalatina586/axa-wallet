@@ -17,7 +17,7 @@ export default function ProfilPage() {
   const sub = dark ? 'text-[#94A3B8]' : 'text-gray-500'
 
   const copy = () => {
-    navigator.clipboard.writeText(wallet.address)
+    navigator.clipboard.writeText(wallet.display_id || '')
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -41,7 +41,7 @@ export default function ProfilPage() {
           </div>
           <h2 className="text-lg font-bold mb-1">{wallet.name}</h2>
           <div className="flex items-center justify-center gap-2">
-            <p className={`text-xs font-mono ${sub}`}>{wallet.address.slice(0, 10)}...{wallet.address.slice(-6)}</p>
+            <p className={`text-xs font-mono ${sub}`}>{wallet.display_id || 'ID...'}</p>
             <button onClick={copy}>
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} className={sub} />}
             </button>

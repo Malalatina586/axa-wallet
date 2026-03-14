@@ -38,6 +38,7 @@ export const formatAriary = (n: number) =>
 interface Wallet {
   name: string
   address: string
+  display_id?: string  // Stylized user ID (e.g., "1548AXE5789")
   wallet_address: string
   balance_axe: number
   balance_usdt: number
@@ -134,6 +135,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         setWallet({
           name: userData.nom || session.user.email?.split('@')[0] || 'Utilisateur',
           address: session.user.id,
+          display_id: userData.display_id,
           wallet_address: walletAddr,
           balance_axe: userData.balance_axe || 0,
           balance_usdt: userData.balance_usdt || 0,
