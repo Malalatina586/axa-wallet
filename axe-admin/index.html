@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AXA Wallet — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#070d1a;--surface:#0d1829;--card:#111f35;--border:#1a2d4a;
+  --gold:#f0b429;--gold2:#ffd166;--blue:#3b82f6;--green:#22c55e;
+  --red:#ef4444;--purple:#a855f7;--cyan:#06b6d4;
+  --text:#e8edf5;--sub:#6b8aad;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;}
+
+/* Sidebar */
+.sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;z-index:100;}
+.logo{padding:0 24px 24px;border-bottom:1px solid var(--border);}
+.logo-title{font-size:20px;font-weight:800;color:var(--gold);letter-spacing:-0.5px;}
+.logo-sub{font-size:11px;color:var(--sub);font-family:var(--mono);margin-top:2px;}
+.nav{flex:1;padding:16px 12px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--sub);transition:all 0.15s;margin-bottom:4px;border:1px solid transparent;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:linear-gradient(135deg,rgba(240,180,41,0.15),rgba(240,180,41,0.05));color:var(--gold);border-color:rgba(240,180,41,0.2);}
+.nav-icon{width:18px;height:18px;flex-shrink:0;}
+.badge{margin-left:auto;background:var(--red);color:white;font-size:10px;padding:2px 6px;border-radius:20px;font-family:var(--mono);}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);}
+.admin-info{display:flex;align-items:center;gap:10px;}
+.admin-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),#e07b00);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#000;}
+.admin-name{font-size:13px;font-weight:700;}
+.admin-role{font-size:10px;color:var(--sub);font-family:var(--mono);}
+
+/* Main */
+.main{margin-left:240px;flex:1;padding:32px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* Header */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.page-title{font-size:24px;font-weight:800;}
+.page-sub{font-size:13px;color:var(--sub);margin-top:2px;}
+.header-actions{display:flex;gap:10px;}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:0.06;transform:translate(20px,-20px);}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-label{font-size:11px;color:var(--sub);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.stat-value{font-size:26px;font-weight:800;font-family:var(--mono);}
+.stat-value.gold{color:var(--gold);}
+.stat-value.green{color:var(--green);}
+.stat-value.blue{color:var(--blue);}
+.stat-value.purple{color:var(--purple);}
+.stat-change{font-size:11px;color:var(--sub);margin-top:6px;font-family:var(--mono);}
+.stat-change span{color:var(--green);}
+
+/* Table */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:14px;font-weight:700;}
+.table-filters{display:flex;gap:8px;}
+.filter-btn{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--sub);font-family:var(--sans);transition:all 0.15s;}
+.filter-btn.active{background:var(--gold);color:#000;border-color:var(--gold);}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 20px;font-size:11px;font-weight:700;color:var(--sub);text-align:left;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+td{padding:14px 20px;font-size:13px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.mono{font-family:var(--mono);}
+
+/* Status badges */
+.status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.status::before{content:'';width:6px;height:6px;border-radius:50%;}
+.status.pending{background:rgba(240,180,41,0.15);color:var(--gold);}
+.status.pending::before{background:var(--gold);}
+.status.approved{background:rgba(34,197,94,0.15);color:var(--green);}
+.status.approved::before{background:var(--green);}
+.status.rejected{background:rgba(239,68,68,0.15);color:var(--red);}
+.status.rejected::before{background:var(--red);}
+.status.completed{background:rgba(59,130,246,0.15);color:var(--blue);}
+.status.completed::before{background:var(--blue);}
+
+/* Action buttons */
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--sans);transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;}
+.btn:active{transform:scale(0.97);}
+.btn-approve{background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.btn-approve:hover{background:var(--green);color:#000;}
+.btn-reject{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.btn-reject:hover{background:var(--red);color:white;}
+.btn-view{background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
+.btn-view:hover{background:var(--blue);color:white;}
+.btn-primary{background:var(--gold);color:#000;border:1px solid var(--gold);}
+.btn-primary:hover{background:var(--gold2);}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:480px;max-width:95vw;}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:20px;}
+.modal-field{margin-bottom:16px;}
+.modal-label{font-size:11px;color:var(--sub);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.modal-value{font-size:14px;font-weight:600;}
+.modal-value.mono{font-family:var(--mono);font-size:13px;}
+.modal-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-actions .btn{flex:1;justify-content:center;padding:12px;}
+
+/* Fee highlight */
+.fee-box{background:linear-gradient(135deg,rgba(240,180,41,0.1),rgba(240,180,41,0.03));border:1px solid rgba(240,180,41,0.2);border-radius:12px;padding:14px;margin:16px 0;}
+.fee-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.fee-row:last-child{margin-bottom:0;}
+.fee-key{font-size:12px;color:var(--sub);}
+.fee-val{font-size:13px;font-weight:700;font-family:var(--mono);}
+.fee-val.gold{color:var(--gold);}
+
+/* Responsive */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="auth-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); padding:30px; border-radius:15px; border:1px solid var(--border); width:300px; text-align:center;">
+        <h2 style="margin-bottom:20px;">Connexion Admin</h2>
+        <input type="email" id="email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:10px; background:var(--card); border:1px solid var(--border); color:white; border-radius:8px;">
+        <input type="password" id="password" placeholder="Mot de passe" style="width:100%; padding:10px; margin-bottom:10px; background:var(--card); border:1px solid var(--border); color:white; border-radius:8px;">
+        <button id="btn-login" style="width:100%; padding:10px; background:var(--gold); border:none; cursor:pointer; border-radius:8px; font-weight:700;">Entrer</button>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">AXE ADMIN</div>
+    <div class="logo-sub">v1.0</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="switchPage('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="switchPage('depots',this)">📥 Dépôts <span class="badge" id="badge-depots">0</span></div>
+    <div class="nav-item" onclick="switchPage('retraits',this)">📤 Retraits <span class="badge" id="badge-retraits">0</span></div>
+    <div class="nav-item" onclick="switchPage('transactions',this)">💱 Transactions</div>
+    <div class="nav-item" onclick="switchPage('utilisateurs',this)">👥 Utilisateurs</div>
+    <div class="nav-item" onclick="switchPage('frais',this)">⚙️ Config Frais</div>
+    <div class="nav-item" onclick="switchPage('wallets',this)">💳 Config Wallets</div>
+    <div class="nav-item" onclick="switchPage('staking',this)">📈 Config Staking</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="admin-info">
+      <div class="admin-avatar">A</div>
+      <div>
+        <div class="admin-name">Admin</div>
+        <div class="admin-role">Administrateur</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Vue d'ensemble du système</div>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card gold">
+        <div class="stat-label">AXE Circulation</div>
+        <div class="stat-value gold" id="stat-axe-circulation">--</div>
+        <div class="stat-change">Total en circulation</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Utilisateurs actifs</div>
+        <div class="stat-value green" id="stat-users-total">--</div>
+        <div class="stat-change">Comptes enregistrés</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Dépôts en attente</div>
+        <div class="stat-value blue" id="stat-depots-pending">--</div>
+        <div class="stat-change">À approuver</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Retraits en attente</div>
+        <div class="stat-value purple" id="stat-retraits-pending">--</div>
+        <div class="stat-change">À envoyer</div>
+      </div>
+    </div>
+    <p style="color: var(--sub); font-size: 14px;">Page de bienvenue - Intégration de graphiques disponible</p>
+  </div>
+
+  <!-- DÉPÔTS -->
+  <div class="page" id="page-depots">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Gestion des Dépôts</div>
+        <div class="page-sub">Approbation des dépôts utilisateurs</div>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Rechercher..." oninput="filterTable('depots-table',this.value)"/>
+        </div>
+        <div class="table-filters">
+          <button class="filter-btn active" onclick="filterDepots('all',this)">Tous</button>
+          <button class="filter-btn" onclick="filterDepots('pending',this)">En attente</button>
+          <button class="filter-btn" onclick="filterDepots('approved',this)">Approuvés</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>Montant Ariary</th><th>AXE à créditer</th><th>Frais (2%)</th><th>Mvola</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="depots-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RETRAITS -->
+  <div class="page" id="page-retraits">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Gestion des Retraits</div>
+        <div class="page-sub">Envoyez manuellement via Mvola</div>
+      </div>
+      <div class="header-actions">
+        <div class="search-bar">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Rechercher..." oninput="filterTable('retraits-table',this.value)"/>
+        </div>
+        <div class="table-filters">
+          <button class="filter-btn active" onclick="filterRetraits('all',this)">Tous</button>
+          <button class="filter-btn" onclick="filterRetraits('pending',this)">En attente</button>
+          <button class="filter-btn" onclick="filterRetraits('completed',this)">Traités</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>AXE envoyé</th><th>Ariary net</th><th>Frais (3%)</th><th>Mvola destinataire</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="retraits-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="page" id="page-transactions">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Toutes les Transactions</div>
+        <div class="page-sub">Historique complet</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Utilisateur</th><th>Type</th><th>Montant</th><th>Frais</th><th>Net</th><th>Date</th><th>Statut</th></tr>
+        </thead>
+        <tbody id="transactions-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- UTILISATEURS -->
+  <div class="page" id="page-utilisateurs">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Utilisateurs</div>
+        <div class="page-sub">127 comptes enregistrés</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card green"><div class="stat-label">Utilisateurs</div><div class="stat-value green" id="stat-users-page">--</div></div>
+      <div class="stat-card gold"><div class="stat-label">Total AXE circulation</div><div class="stat-value gold" id="stat-axe-page">--</div></div>
+      <div class="stat-card purple"><div class="stat-label">AXE stakés</div><div class="stat-value purple" id="stat-staked-page">--</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>Solde AXE</th><th>Solde USDT</th><th>Solde Ariary</th><th>Stakés</th><th>Dépôts total</th><th>Retraits total</th><th>Inscription</th><th>Statut</th></tr>
+        </thead>
+        <tbody id="users-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FRAIS & TAUX -->
+  <div class="page" id="page-frais">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Frais & Taux</div>
+        <div class="page-sub">Configurez les frais de transaction</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveFees()">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💰 Frais de transaction</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS DÉPÔT (%)</div>
+            <input type="number" id="fee-depot" value="2" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS RETRAIT (%)</div>
+            <input type="number" id="fee-retrait" value="3" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS P2P (%)</div>
+            <input type="number" id="fee-p2p" value="1" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📈 Taux de change</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">1 AXE = X ARIARY</div>
+            <input type="number" id="rate-axe-ariary" value="220" min="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--gold);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">1 AXE = X USDT</div>
+            <input type="number" id="rate-axe-usdt" value="0.045" min="0.001" step="0.001"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--gold);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NUMÉRO MVOLA ADMIN</div>
+            <input type="text" id="mvola-admin" value="034 XX XXX XX"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG WALLETS -->
+  <div class="page" id="page-wallets">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Adresses Wallets Admin</div>
+        <div class="page-sub">Configurez les adresses de réception des dépôts</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveWallets()">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:16px;max-width:600px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🪙 Adresses de réception</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN AXE (BNB Chain)</div>
+            <input type="text" id="wallet-admin-axe" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts AXE/USDT des utilisateurs</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN USDT (BNB Chain)</div>
+            <input type="text" id="wallet-admin-usdt" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts USDT des utilisateurs</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);">
+        <div style="font-size:12px;color:var(--green);font-weight:600;">✓ Info</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;">
+          • Les adresses configurées ici seront affichées dans le formulaire de dépôt de l'app<br>
+          • Les utilisateurs enverront leurs tokens à ces adresses<br>
+          • Assurez-vous que ces adresses possèdent les clés privées correctes
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG STAKING -->
+  <div class="page" id="page-staking">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Configuration Staking</div>
+        <div class="page-sub">Configurez les paramètres de staking pour les utilisateurs</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveStakingConfig()">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💰 Paramètres généraux</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">POURCENTAGE ANNUEL (%)</div>
+            <input type="number" id="staking-apy" value="12" min="0" max="100" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Exemple: 12% APY</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TYPE DE STAKING</div>
+            <select id="staking-type" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;">
+              <option value="flexible">Flexible (retrait à tout moment)</option>
+              <option value="fixed">Fixe (déblocage après durée)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🔒 Si Staking Fixe</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">DURÉE MINIMUM (jours)</div>
+            <input type="number" id="staking-duration" value="30" min="1" step="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Exemple: 30 jours</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">BONUS POUR DURÉE FIXE (%)</div>
+            <input type="number" id="staking-bonus" value="3" min="0" max="50" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 APY = 12% + 3% bonus = 15%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Montants</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">MONTANT MINIMUM (AXE)</div>
+            <input type="number" id="staking-min" value="100" min="1" step="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">MONTANT MAXIMUM (AXE)</div>
+            <input type="number" id="staking-max" value="1000000" min="1" step="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 0 = illimité</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);">
+        <div style="font-size:12px;color:var(--green);font-weight:600;">✓ Info</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;">
+          • Ces paramètres seront synchronisés dans l'app automatiquement<br>
+          • Les utilisateurs verront les rendements estimés en temps réel<br>
+          • Les récompenses se calculent à partir de ces configurations
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase config
+const SUPABASE_URL = 'https://bozaertrmldtacnkfvan.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvemFlcnRybWxkdGFjbmtmdmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNzkwNDQsImV4cCI6MjA4ODk1NTA0NH0.J_jkVDwzphVVV-EwuT5hpB-_lzMbBGXO-alJhIAOKog'
+
+const { createClient } = supabase
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+let currentUser = null
+let currentId = null
+
+// Login simple pour déploiement
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('email').value
+  const password = document.getElementById('password').value
+  
+  if (!email || !password) {
+    alert('Remplissez tous les champs')
+    return
+  }
+  
+  // Auth simple temporaire
+  if (email === 'admin@axe.mg' && password === 'admin123') {
+    currentUser = { email }
+    document.getElementById('auth-overlay').style.display = 'none'
+    document.querySelector('.admin-name').textContent = email.split('@')[0]
+    loadDashboard()
+  } else {
+    alert('Identifiants invalides\n\nUtilisez:\nEmail: admin@axe.mg\nMot de passe: admin123')
+  }
+})
+
+async function loadDashboard() {
+  await loadDepots()
+  await loadRetraits()
+  await loadTransactions()
+  await loadDashboardStats()
+  await loadUsers()
+  await updateBadges()
+}
+
+async function loadDashboardStats() {
+  try {
+    // Nombre total d'utilisateurs
+    const { data: usersData, error: usersError } = await sb.from('users').select('id')
+    const totalUsers = usersData?.length || 0
+    
+    // Somme des AXE en circulation
+    const { data: walletData } = await sb.from('users').select('balance_axe, axe_staked')
+    const totalAXE = (walletData || []).reduce((sum, u) => sum + (u.balance_axe || 0), 0)
+    const totalStaked = (walletData || []).reduce((sum, u) => sum + (u.axe_staked || 0), 0)
+    
+    // Dépôts en attente
+    const { data: depotsData } = await sb.from('depots').select('id').eq('statut', 'pending')
+    const depotsCount = depotsData?.length || 0
+    
+    // Retraits en attente
+    const { data: retraitsData } = await sb.from('retraits').select('id').eq('statut', 'pending')
+    const retraitsCount = retraitsData?.length || 0
+    
+    // Mettre à jour le dashboard
+    document.getElementById('stat-axe-circulation').textContent = (totalAXE / 1000000).toFixed(1) + 'M'
+    document.getElementById('stat-users-total').textContent = totalUsers
+    document.getElementById('stat-depots-pending').textContent = depotsCount
+    document.getElementById('stat-retraits-pending').textContent = retraitsCount
+    
+    // Mettre à jour la page utilisateurs
+    document.getElementById('stat-users-page').textContent = totalUsers
+    document.getElementById('stat-axe-page').textContent = (totalAXE / 1000000).toFixed(1) + 'M'
+    document.getElementById('stat-staked-page').textContent = (totalStaked / 1000).toFixed(0) + 'K'
+  } catch (err) {
+    console.error('Erreur chargement stats:', err)
+  }
+}
+
+async function loadDepots() {
+  try {
+    const { data, error } = await sb.from('depots').select('*, users(nom)').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('depots-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">${d.axe_credite || 0} AXE</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : d.statut === 'approved' ? '✓ Approuvé' : '✕ Rejeté'}</span></td>
+        <td><button class="btn btn-view" onclick="viewDepot('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement dépôts:', err)
+  }
+}
+
+async function loadRetraits() {
+  try {
+    const { data, error } = await sb.from('retraits').select('*, users(nom)').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('retraits-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">${d.axe_envoye || 0} AXE</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span></td>
+        <td><button class="btn btn-view" onclick="viewRetrait('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement retraits:', err)
+  }
+}
+
+async function loadTransactions() {
+  try {
+    const { data, error } = await sb.from('transactions').select('*, users(nom)').order('created_at', { ascending: false }).limit(50)
+    if (error) throw error
+    
+    const tbody = document.getElementById('transactions-table')
+    tbody.innerHTML = (data || []).map((d, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td>${d.type || 'N/A'}</td>
+        <td class="mono">${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${(d.montant - d.frais)?.toLocaleString() || 0}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut}</span></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement transactions:', err)
+  }
+}
+
+async function viewDepot(id) {
+  try {
+    const { data, error } = await sb.from('depots').select('*, users(nom)').eq('id', id).single()
+    if (error) throw error
+    
+    alert(`Dépôt #${id}\nUtilisateur: ${data.users.nom}\nMontant: Ar ${data.montant_ariary}\nAXE à créditer: ${data.axe_credite}\nMvola: ${data.mvola}\nStatut: ${data.statut}`)
+    currentId = id
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function viewRetrait(id) {
+  try {
+    const { data, error } = await sb.from('retraits').select('*, users(nom)').eq('id', id).single()
+    if (error) throw error
+    
+    alert(`Retrait #${id}\nUtilisateur: ${data.users.nom}\nAXE: ${data.axe_envoye}\nAriary: Ar ${data.montant_ariary}\nMvola: ${data.mvola}\nStatut: ${data.statut}`)
+    currentId = id
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+function filterDepots(status, el) {
+  document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  // Implémenter le filtrage
+}
+
+async function loadWallets() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
+      document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+    }
+  } catch (err) {
+    console.error('Erreur chargement wallets:', err)
+  }
+}
+
+async function saveWallets() {
+  try {
+    const axeAddr = document.getElementById('wallet-admin-axe').value.trim()
+    const usdtAddr = document.getElementById('wallet-admin-usdt').value.trim()
+    
+    if (!axeAddr || !usdtAddr) {
+      alert('Remplissez toutes les adresses')
+      return
+    }
+    
+    if (!axeAddr.startsWith('0x') || !usdtAddr.startsWith('0x')) {
+      alert('Les adresses doivent commencer par 0x')
+      return
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update({
+        wallet_admin_axe: axeAddr,
+        wallet_admin_usdt: usdtAddr,
+        updated_at: new Date().toISOString(),
+      }).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert
+      const { error } = await sb.from('config').insert({
+        id: 1,
+        wallet_admin_axe: axeAddr,
+        wallet_admin_usdt: usdtAddr,
+      })
+      if (error) throw error
+    }
+    
+    alert('✓ Adresses wallets sauvegardées!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function updateBadges() {
+  try {
+    const { data: depots } = await sb.from('depots').select('id').eq('statut', 'pending')
+    const { data: retraits } = await sb.from('retraits').select('id').eq('statut', 'pending')
+    
+    const depotsCount = depots?.length || 0
+    const retraitsCount = retraits?.length || 0
+    
+    // Afficher/masquer les badges selon le nombre
+    const badgeDepots = document.getElementById('badge-depots')
+    const badgeRetraits = document.getElementById('badge-retraits')
+    
+    if (depotsCount === 0) {
+      badgeDepots.style.display = 'none'
+    } else {
+      badgeDepots.style.display = 'inline-flex'
+      badgeDepots.textContent = depotsCount
+    }
+    
+    if (retraitsCount === 0) {
+      badgeRetraits.style.display = 'none'
+    } else {
+      badgeRetraits.style.display = 'inline-flex'
+      badgeRetraits.textContent = retraitsCount
+    }
+  } catch (err) {
+    console.error('Erreur mise à jour badges:', err)
+  }
+}
+
+async function loadUsers() {
+  try {
+    const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('users-table')
+    tbody.innerHTML = (data || []).map(u => `
+      <tr>
+        <td>${u.nom || 'N/A'}</td>
+        <td class="mono">${u.balance_axe || 0} AXE</td>
+        <td class="mono">$${(u.balance_usdt || 0).toFixed(2)}</td>
+        <td class="mono">Ar ${(u.balance_ariary || 0).toLocaleString()}</td>
+        <td class="mono">${u.axe_staked || 0}</td>
+        <td class="mono">${u.total_deposits || 0}</td>
+        <td class="mono">${u.total_withdrawals || 0}</td>
+        <td>${new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status completed">✓ Actif</span></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement utilisateurs:', err)
+  }
+}
+
+async function loadStakingConfig() {
+  try {
+    const { data, error } = await sb.from('staking_config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('staking-apy').value = data.apy || 12
+      document.getElementById('staking-type').value = data.type || 'flexible'
+      document.getElementById('staking-duration').value = data.duration_days || 30
+      document.getElementById('staking-bonus').value = data.bonus_percentage || 3
+      document.getElementById('staking-min').value = data.min_amount || 100
+      document.getElementById('staking-max').value = data.max_amount || 1000000
+    }
+  } catch (err) {
+    console.error('Erreur chargement config staking:', err)
+  }
+}
+
+async function saveStakingConfig() {
+  try {
+    const config = {
+      id: 1,
+      apy: parseFloat(document.getElementById('staking-apy').value),
+      type: document.getElementById('staking-type').value,
+      duration_days: parseInt(document.getElementById('staking-duration').value),
+      bonus_percentage: parseFloat(document.getElementById('staking-bonus').value),
+      min_amount: parseInt(document.getElementById('staking-min').value),
+      max_amount: parseInt(document.getElementById('staking-max').value),
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('staking_config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('staking_config').update(config).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert
+      const { error } = await sb.from('staking_config').insert(config)
+      if (error) throw error
+    }
+    
+    alert('✓ Configuration staking sauvegardée!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+function filterRetraits(status, el) {
+  document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  // Implémenter le filtrage
+}
+
+function filterTable(id, search) {
+  // Implémenter le filtrage par texte
+}
+
+async function saveFees() {
+  try {
+    const { error } = await sb.from('taux').update({
+      depot_fee: parseFloat(document.getElementById('fee-depot').value),
+      retrait_fee: parseFloat(document.getElementById('fee-retrait').value),
+      p2p_fee: parseFloat(document.getElementById('fee-p2p').value),
+      axe_ariary: parseFloat(document.getElementById('rate-axe-ariary').value),
+      axe_usdt: parseFloat(document.getElementById('rate-axe-usdt').value),
+    }).eq('id', 1)
+    
+    if (error) throw error
+    alert('✓ Frais et taux sauvegardés!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+function switchPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById(`page-${page}`).classList.add('active')
+  el.classList.add('active')
+  
+  // Charger les données selon la page
+  if (page === 'wallets') {
+    loadWallets()
+  } else if (page === 'utilisateurs') {
+    loadUsers()
+  } else if (page === 'staking') {
+    loadStakingConfig()
+  }
+}
+</script>
+</body>
+</html>
