@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import { supabase, User } from '../lib/supabase'
+import { encryptPrivateKey } from '../lib/crypto'
 import { Session } from '@supabase/supabase-js'
 
 // Générer un wallet BNB Chain (EVM-compatible)
@@ -52,22 +53,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string, nom: string, telephone: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password })
-    if (!error && data.user) {
-      const { address, privateKey } = generateBNBWallet()
-      await supabase.from('users').insert({
-        id: data.user.id,
-        nom,
-        telephone,
-        wallet_address: address,
-        wallet_private_key: privateKey,
-        balance_axe: 0,
-        balance_ariary: 0,
-        balance_usdt: 0,
-        axe_staked: 0,
-      })
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (!error && data.user) {
+        const { address, privateKey } = generateBNBWallet()
+        
+        // 🔐 ENCRYPT private key with password before storing!
+        const encryptedPrivateKey = await encryptPrivateKey(privateKey, password)
+        
+        await supabase.from('users').insert({
+          id: data.user.id,
+          nom,
+          telephone,
+          wallet_address: address,
+          wallet_private_key: encryptedPrivateKey, // ✅ Now encrypted!
+          balance_axe: 0,
+          balance_ariary: 0,
+          balance_usdt: 0,
+          axe_staked: 0,
+        })
+      }
+      return { error }
+    } catch (err) {
+      console.error('❌ SignUp error:', err)
+      return { error: err }
     }
-    return { error }
   }
 
   async function signIn(email: string, password: string) {

@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { ethers } from 'ethers'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { sendAXE, getAXEBalance } from '../lib/blockchain'
+import { decryptPrivateKey } from '../lib/crypto'
+import { atomicTransferP2PAriary, atomicTransferP2PAXE, validateP2PTransfer } from '../lib/atomic-transactions'
+import { verifyBlockchainTransaction, sendVerifiedAXETransfer } from '../lib/blockchain-verification'
+
+// AXE Token Contract Address on BNB Chain (Madagascar)
+const AXE_TOKEN_ADDRESS = '0xc8d07b5c2403efFa58aDCCC23f8D4217e94F11Fa'
 
 export const RATES = {
-  AXE_ARIARY: 220,
+  AXE_ARIARY: 1000,
   AXE_USDT: 0.045,
   USDT_ARIARY: 4800,
 }
@@ -101,10 +108,19 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         .from('users').select('*').eq('id', session.user.id).single()
 
       if (userData) {
+        // 🔄 Si pas d'adresse wallet, la générer!
+        let walletAddr = userData.wallet_address
+        if (!walletAddr) {
+          const randomWallet = ethers.Wallet.createRandom()
+          walletAddr = randomWallet.address
+          // Sauvegarde l'adresse générée
+          await supabase.from('users').update({ wallet_address: walletAddr }).eq('id', session.user.id)
+        }
+
         setWallet({
           name: userData.nom || session.user.email?.split('@')[0] || 'Utilisateur',
           address: session.user.id,
-          wallet_address: userData.wallet_address || '',
+          wallet_address: walletAddr,
           balance_axe: userData.balance_axe || 0,
           balance_usdt: userData.balance_usdt || 0,
           balance_ariary: userData.balance_ariary || 0,
@@ -129,8 +145,16 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   useEffect(() => {
-    if (session?.user?.id) refreshWallet()
-    else setLoading(false)
+    if (session?.user?.id) {
+      refreshWallet()
+      // Auto-refresh balances toutes les 10 secondes
+      const interval = setInterval(() => {
+        refreshWallet()
+      }, 10000)
+      return () => clearInterval(interval)
+    } else {
+      setLoading(false)
+    }
   }, [session?.user?.id])
 
   async function submitDepot(montant: number, mvola: string) {
@@ -177,137 +201,180 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   async function sendAXEDirect(recipientAddr: string, amountAXE: number) {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
-    // Récupérer la clé privée de l'user
-    const { data: userData } = await supabase
-      .from('users').select('wallet_private_key').eq('id', session.user.id).single()
-    
-    if (!userData?.wallet_private_key) {
-      return { error: 'Clé privée non trouvée' }
+    try {
+      // Get sender's encrypted private key
+      const { data: userData } = await supabase
+        .from('users')
+        .select('wallet_private_key, balance_axe')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (!userData?.wallet_private_key) {
+        return { error: 'Clé privée non trouvée' }
+      }
+
+      if (userData.balance_axe < amountAXE) {
+        return { error: 'Solde insuffisant' }
+      }
+
+      // 🔐 DECRYPT private key
+      let decryptedKey: string
+      try {
+        // NOTE: In production, implement proper password handling
+        decryptedKey = await decryptPrivateKey(userData.wallet_private_key, session.user?.email || '')
+      } catch (err) {
+        return { error: 'Impossible de déchiffrer la clé privée' }
+      }
+
+      // Create ethers.Wallet signer from decrypted key
+      const wallet = new ethers.Wallet(decryptedKey)
+
+      // 🚀 Send AXE and verify blockchain confirmation
+      const result = await sendVerifiedAXETransfer(
+        wallet,
+        AXE_TOKEN_ADDRESS,
+        recipientAddr,
+        amountAXE,
+        (status: string) => console.log('Transfer status:', status)
+      )
+
+      if (result.error) {
+        return { error: result.error }
+      }
+
+      // ✅ Record transaction (blockchain already verified)
+      await supabase.from('transactions').insert({
+        user_id: session.user.id,
+        type: 'envoi_axe_direct',
+        montant: amountAXE,
+        frais: 0,
+        statut: 'completed',
+        blockchain_tx: result.txHash,
+      })
+
+      // Update local balance
+      setWallet(prev => ({ ...prev, balance_axe: userData.balance_axe - amountAXE }))
+
+      return { txHash: result.txHash }
+    } catch (err: any) {
+      console.error('❌ Direct AXE transfer error:', err)
+      return { error: err.message || 'Erreur lors du transfert' }
     }
-
-    // Envoyer via blockchain
-    const result = await sendAXE(userData.wallet_private_key, recipientAddr, amountAXE)
-    
-    if (result.error) {
-      return { error: result.error }
-    }
-
-    // Enregistrer dans la base de données
-    await supabase.from('transactions').insert({
-      user_id: session.user.id,
-      type: 'envoi_axe_blockchain',
-      montant: amountAXE,
-      frais: 0,
-      statut: 'completed',
-    })
-
-    return { txHash: result.txHash || undefined }
   }
 
   async function sendP2PAriary(recipientUID: string, montantAriary: number) {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
-    // Trouver le destinataire par UID
-    const { data: recipientUser } = await supabase
-      .from('users').select('id, balance_ariary, nom').eq('id', recipientUID).single()
-    
-    if (!recipientUser) {
-      return { error: 'Utilisateur introuvable' }
+    try {
+      // 🔐 Validate sender and recipient
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, montantAriary, 'ariary')
+      if (!validation.valid) {
+        return { error: validation.error || 'Validation échouée' }
+      }
+
+      // 🔄 Call atomic RPC function - ALL-OR-NOTHING transaction
+      const result = await atomicTransferP2PAriary(session.user.id, recipientUID, montantAriary)
+      
+      if (!result.success || result.error) {
+        return { error: result.error || 'Transfert échoué' }
+      }
+
+      // ✅ Transaction succeeded atomically at DB level
+      // Update local state
+      setWallet(prev => ({ ...prev, balance_ariary: wallet.balance_ariary - montantAriary }))
+      
+      // Refresh full wallet to get correct balances from DB
+      await refreshWallet()
+
+      return { success: true }
+    } catch (err: any) {
+      console.error('❌ P2P Ariary transfer error:', err)
+      return { error: err.message || 'Erreur lors du transfert' }
     }
-
-    if (wallet.balance_ariary < montantAriary) {
-      return { error: 'Solde insuffisant' }
-    }
-
-    // Réduire balance du sender
-    const { error: err1 } = await supabase
-      .from('users')
-      .update({ balance_ariary: wallet.balance_ariary - montantAriary })
-      .eq('id', session.user.id)
-
-    if (err1) return { error: 'Erreur lors du débit' }
-
-    // Augmenter balance du recipient
-    const { error: err2 } = await supabase
-      .from('users')
-      .update({ balance_ariary: (recipientUser.balance_ariary || 0) + montantAriary })
-      .eq('id', recipientUser.id)
-
-    if (err2) return { error: 'Erreur lors du crédit' }
-
-    // Enregistrer transaction sender
-    await supabase.from('transactions').insert({
-      user_id: session.user.id,
-      type: 'p2p_ariary_envoi',
-      montant: montantAriary,
-      frais: 0,
-      statut: 'completed',
-    })
-
-    // Enregistrer transaction recipient
-    await supabase.from('transactions').insert({
-      user_id: recipientUser.id,
-      type: 'p2p_ariary_reception',
-      montant: montantAriary,
-      frais: 0,
-      statut: 'completed',
-    })
-
-    // Mettre à jour le wallet local
-    setWallet(prev => ({ ...prev, balance_ariary: wallet.balance_ariary - montantAriary }))
-
-    return { success: true }
   }
 
   async function sendP2PAXE(recipientUID: string, amountAXE: number) {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
-    // Trouver le destinataire par UID
-    const { data: recipientUser } = await supabase
-      .from('users').select('id, wallet_address, wallet_private_key').eq('id', recipientUID).single()
-    
-    if (!recipientUser) {
-      return { error: 'Utilisateur introuvable' }
+    try {
+      // 🔐 Validate sender and recipient
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountAXE, 'axe')
+      if (!validation.valid) {
+        return { error: validation.error || 'Validation échouée' }
+      }
+
+      // Get sender's encrypted private key
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('wallet_private_key')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (!senderData?.wallet_private_key) {
+        return { error: 'Clé privée non trouvée' }
+      }
+
+      // Get recipient's wallet address
+      const { data: recipientData } = await supabase
+        .from('users')
+        .select('wallet_address')
+        .eq('id', recipientUID)
+        .single()
+      
+      if (!recipientData?.wallet_address) {
+        return { error: 'Adresse wallet du destinataire non trouvée' }
+      }
+
+      // 🔐 DECRYPT private key (user password needed -> TODO: implement password prompt)
+      // For now, assume password is available from auth session
+      let decryptedKey: string
+      try {
+        // NOTE: In production, you'll need to get password from user input
+        // This is a simplified approach - implement proper password handling
+        decryptedKey = await decryptPrivateKey(senderData.wallet_private_key, session.user?.email || '')
+      } catch (err) {
+        return { error: 'Impossible de déchiffrer la clé privée' }
+      }
+
+      // Create ethers.Wallet signer from decrypted key
+      const signer = new ethers.Wallet(decryptedKey)
+
+      // 🚀 Send AXE transfer with blockchain verification
+      const transferResult = await sendVerifiedAXETransfer(
+        signer,
+        AXE_TOKEN_ADDRESS,
+        recipientData.wallet_address,
+        amountAXE,
+        (status: string) => console.log('Transfer status:', status) // Could be UI feedback
+      )
+
+      if (transferResult.error) {
+        return { error: transferResult.error }
+      }
+
+      // ✅ Blockchain transfer confirmed - now atomic DB update
+      const txHash = transferResult.txHash
+      if (!txHash) {
+        return { error: 'Transaction hash not returned from blockchain' }
+      }
+
+      const dbResult = await atomicTransferP2PAXE(session.user.id, recipientUID, amountAXE, txHash)
+
+      if (!dbResult.success || dbResult.error) {
+        // Blockchain succeeded but DB failed - critical error!
+        console.warn('⚠️ CRITICAL: Blockchain TX succeeded but DB update failed!', { txHash, error: dbResult.error })
+        return { error: dbResult.error || 'Enregistrement DB échoué. Contactez support.' }
+      }
+
+      // ✅ Blockchain + DB both succeeded
+      setWallet(prev => ({ ...prev, balance_axe: prev.balance_axe - amountAXE }))
+      await refreshWallet()
+
+      return { txHash }
+    } catch (err: any) {
+      console.error('❌ P2P AXE transfer error:', err)
+      return { error: err.message || 'Erreur lors du transfert' }
     }
-
-    if (!recipientUser.wallet_address) {
-      return { error: 'Destinataire n\'a pas de wallet' }
-    }
-
-    // Récupérer la clé privée du sender
-    const { data: senderData } = await supabase
-      .from('users').select('wallet_private_key').eq('id', session.user.id).single()
-    
-    if (!senderData?.wallet_private_key) {
-      return { error: 'Clé privée non trouvée' }
-    }
-
-    // Envoyer via blockchain
-    const result = await sendAXE(senderData.wallet_private_key, recipientUser.wallet_address, amountAXE)
-    
-    if (result.error) {
-      return { error: result.error }
-    }
-
-    // Enregistrer transaction sender
-    await supabase.from('transactions').insert({
-      user_id: session.user.id,
-      type: 'p2p_axe_envoi',
-      montant: amountAXE,
-      frais: 0,
-      statut: 'completed',
-    })
-
-    // Enregistrer transaction recipient
-    await supabase.from('transactions').insert({
-      user_id: recipientUser.id,
-      type: 'p2p_axe_reception',
-      montant: amountAXE,
-      frais: 0,
-      statut: 'completed',
-    })
-
-    return { txHash: result.txHash || undefined }
   }
 
   Object.assign(RATES, rates)

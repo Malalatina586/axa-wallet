@@ -44,19 +44,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 .header-actions{display:flex;gap:10px;}
 
 /* Stats grid */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px;}
 .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
 .stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:0.06;transform:translate(20px,-20px);}
 .stat-card.gold::before{background:var(--gold);}
 .stat-card.green::before{background:var(--green);}
 .stat-card.blue::before{background:var(--blue);}
 .stat-card.purple::before{background:var(--purple);}
+.stat-card.cyan::before{background:var(--cyan);}
+.stat-card.red::before{background:var(--red);}
 .stat-label{font-size:11px;color:var(--sub);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
 .stat-value{font-size:26px;font-weight:800;font-family:var(--mono);}
 .stat-value.gold{color:var(--gold);}
 .stat-value.green{color:var(--green);}
 .stat-value.blue{color:var(--blue);}
 .stat-value.purple{color:var(--purple);}
+.stat-value.cyan{color:var(--cyan);}
 .stat-change{font-size:11px;color:var(--sub);margin-top:6px;font-family:var(--mono);}
 .stat-change span{color:var(--green);}
 
@@ -136,7 +139,51 @@ tr:hover td{background:rgba(255,255,255,0.02);}
     </div>
 </div>
 
-<!-- Sidebar -->
+<!-- Modal Transaction Details -->
+<div id="transaction-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:500px;max-width:95vw;">
+        <div style="font-size:18px;font-weight:800;margin-bottom:20px;" id="modal-title">Détails</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">UTILISATEUR</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-user">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">STATUT</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-status">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">DATE</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-date">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ID</div>
+                <div style="font-size:12px;font-family:var(--mono);color:var(--gold);" id="modal-id">N/A</div>
+            </div>
+        </div>
+        
+        <div style="background:rgba(26,45,74,0.3);padding:16px;border-radius:12px;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">MONTANT</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--gold);" id="modal-amount">0</div>
+                </div>
+                <div>
+                    <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--red);" id="modal-fees">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:20px;" id="modal-extra-info"></div>
+        
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button onclick="closeModal()" style="flex:1;padding:12px;background:rgba(107,138,173,0.2);color:var(--text);border:1px solid var(--border);cursor:pointer;border-radius:8px;font-weight:700;font-family:var(--sans);">✕ Fermer</button>
+            <button id="modal-action-btn" onclick="approveTransaction()" style="flex:1;padding:12px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);cursor:pointer;border-radius:8px;font-weight:700;font-family:var(--sans);">✓ Approuver</button>
+        </div>
+    </div>
+</div>
 <aside class="sidebar">
   <div class="logo">
     <div class="logo-title">AXE ADMIN</div>
@@ -160,6 +207,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <div class="admin-role">Administrateur</div>
       </div>
     </div>
+    <button onclick="logout()" style="width:100%;margin-top:16px;padding:8px 12px;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);cursor:pointer;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--sans);transition:all 0.15s;">🚪 Déconnexion</button>
   </div>
 </aside>
 
@@ -172,29 +220,56 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <div class="page-sub">Vue d'ensemble du système</div>
       </div>
     </div>
-    <div class="stats-grid">
+    
+    <!-- Graphique et Cercle EN HAUT - INVERSÉS -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:28px;">
+      <!-- Widget rond - Membres actifs À GAUCHE -->
+      <div class="stat-card" style="background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--sub);">ACTIFS AUJOURD'HUI</div>
+        <canvas id="activeUsersChart" style="max-width:200px;max-height:200px;"></canvas>
+        <div style="font-size:12px;color:var(--sub);margin-top:12px;" id="active-users-label">-- utilisateurs</div>
+      </div>
+      
+      <!-- Graphique 7 jours À DROITE -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Transactions (7 jours)</div>
+        <canvas id="transactionsChart" style="max-height:300px;"></canvas>
+      </div>
+    </div>
+    
+    <!-- 6 Cartes EN BAS - 3 COLONNES -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-card cyan">
+        <div class="stat-label">USDT en Circulation</div>
+        <div class="stat-value cyan" id="stat-usdt-circulation">--</div>
+        <div class="stat-change">Total USDT</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Ariary en Circulation</div>
+        <div class="stat-value red" id="stat-ariary-circulation">--</div>
+        <div class="stat-change">Total Ariary</div>
+      </div>
       <div class="stat-card gold">
         <div class="stat-label">AXE Circulation</div>
         <div class="stat-value gold" id="stat-axe-circulation">--</div>
         <div class="stat-change">Total en circulation</div>
       </div>
-      <div class="stat-card green">
-        <div class="stat-label">Utilisateurs actifs</div>
-        <div class="stat-value green" id="stat-users-total">--</div>
-        <div class="stat-change">Comptes enregistrés</div>
+      <div class="stat-card purple">
+        <div class="stat-label">Total retraits</div>
+        <div class="stat-value purple" id="stat-retraits-pending">--</div>
+        <div class="stat-change">Tous les retraits</div>
       </div>
       <div class="stat-card blue">
-        <div class="stat-label">Dépôts en attente</div>
+        <div class="stat-label">Total dépôts</div>
         <div class="stat-value blue" id="stat-depots-pending">--</div>
-        <div class="stat-change">À approuver</div>
+        <div class="stat-change">Tous les dépôts</div>
       </div>
-      <div class="stat-card purple">
-        <div class="stat-label">Retraits en attente</div>
-        <div class="stat-value purple" id="stat-retraits-pending">--</div>
-        <div class="stat-change">À envoyer</div>
+      <div class="stat-card green">
+        <div class="stat-label">Total de frais</div>
+        <div class="stat-value green" id="stat-total-fees">--</div>
+        <div class="stat-change">En AXE</div>
       </div>
     </div>
-    <p style="color: var(--sub); font-size: 14px;">Page de bienvenue - Intégration de graphiques disponible</p>
   </div>
 
   <!-- DÉPÔTS -->
@@ -343,11 +418,6 @@ tr:hover td{background:rgba(255,255,255,0.02);}
             <input type="number" id="rate-axe-usdt" value="0.045" min="0.001" step="0.001"
               style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--gold);font-size:16px;font-family:var(--mono);outline:none;">
           </div>
-          <div>
-            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NUMÉRO MVOLA ADMIN</div>
-            <input type="text" id="mvola-admin" value="034 XX XXX XX"
-              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
-          </div>
         </div>
       </div>
     </div>
@@ -365,7 +435,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr;gap:16px;max-width:600px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1000px;">
       <div class="stat-card" style="background:var(--card);">
         <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🪙 Adresses de réception</div>
         <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
@@ -380,6 +450,39 @@ tr:hover td{background:rgba(255,255,255,0.02);}
             <input type="text" id="wallet-admin-usdt" placeholder="0x..."
               style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
             <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts USDT des utilisateurs</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💳 Numéros de réception</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TELMA</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-telma-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-telma-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ORANGE</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-orange-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-orange-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">AIRTEL</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-aitel-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-aitel-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
           </div>
         </div>
       </div>
@@ -474,6 +577,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
   </div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Supabase config
@@ -489,6 +593,8 @@ let currentId = null
 // ===== LOGIN SIMPLE (MOT DE PASSE UNIQUEMENT) =====
 const ADMIN_PASSWORD = 'admin123' // Changez ce mot de passe en production!
 
+let autoRefreshInterval = null
+
 document.getElementById('btn-login').addEventListener('click', () => {
   const password = document.getElementById('admin-password').value
   const errorDiv = document.getElementById('login-error')
@@ -498,6 +604,14 @@ document.getElementById('btn-login').addEventListener('click', () => {
     sessionStorage.setItem('admin_authenticated', 'true')
     document.getElementById('auth-overlay').style.display = 'none'
     loadDashboard()
+    
+    // Stopper l'ancien interval s'il existe
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+    
+    // Auto-refresh des stats toutes les 10 secondes
+    autoRefreshInterval = setInterval(() => {
+      loadDashboardStats()
+    }, 10000)
   } else {
     // Mot de passe incorrect
     errorDiv.textContent = '❌ Mot de passe incorrect'
@@ -516,6 +630,12 @@ window.addEventListener('load', () => {
   } else {
     document.getElementById('auth-overlay').style.display = 'none'
     loadDashboard()
+    
+    // Auto-refresh des stats toutes les 10 secondes
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+    autoRefreshInterval = setInterval(() => {
+      loadDashboardStats()
+    }, 10000)
   }
 })
 
@@ -528,6 +648,14 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 })
 
+function logout() {
+  if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+    sessionStorage.removeItem('admin_authenticated')
+    if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+    location.reload()
+  }
+}
+
 async function loadDashboard() {
   await loadDepots()
   await loadRetraits()
@@ -539,35 +667,167 @@ async function loadDashboard() {
 
 async function loadDashboardStats() {
   try {
+    // Config pour les taux de change
+    const { data: configData } = await sb.from('config').select('*').eq('id', 1).single()
+    const rateAxeAriary = configData?.rate_axe_ariary || 220
+    const rateAxeUsdt = configData?.rate_axe_usdt || 0.045
+    const feeDepot = configData?.fee_depot || 2
+    const feeRetrait = configData?.fee_retrait || 3
+    
     // Nombre total d'utilisateurs
-    const { data: usersData, error: usersError } = await sb.from('users').select('id')
+    const { data: usersData } = await sb.from('users').select('id')
     const totalUsers = usersData?.length || 0
     
-    // Somme des AXE en circulation
-    const { data: walletData } = await sb.from('users').select('balance_axe, axe_staked')
+    // Somme des AXE, USDT, et Ariary en circulation
+    const { data: walletData } = await sb.from('users').select('balance_axe, axe_staked, balance_usdt, balance_ariary')
     const totalAXE = (walletData || []).reduce((sum, u) => sum + (u.balance_axe || 0), 0)
     const totalStaked = (walletData || []).reduce((sum, u) => sum + (u.axe_staked || 0), 0)
+    const totalUSDT = (walletData || []).reduce((sum, u) => sum + (u.balance_usdt || 0), 0)
+    const totalAriary = (walletData || []).reduce((sum, u) => sum + (u.balance_ariary || 0), 0)
     
-    // Dépôts en attente
-    const { data: depotsData } = await sb.from('depots').select('id').eq('statut', 'pending')
-    const depotsCount = depotsData?.length || 0
+    // TOTAL Dépôts
+    const { data: allDepotsData } = await sb.from('depots').select('montant_ariary')
+    const totalDepots = allDepotsData?.length || 0
+    const totalDepotsFees = (allDepotsData || []).reduce((sum, d) => sum + (d.montant_ariary || 0) * (feeDepot / 100), 0) / rateAxeAriary
     
-    // Retraits en attente
-    const { data: retraitsData } = await sb.from('retraits').select('id').eq('statut', 'pending')
-    const retraitsCount = retraitsData?.length || 0
+    // TOTAL Retraits
+    const { data: allRetraitsData } = await sb.from('retraits').select('montant_ariary')
+    const totalRetraits = allRetraitsData?.length || 0
+    const totalRetraitsFees = (allRetraitsData || []).reduce((sum, r) => sum + (r.montant_ariary || 0) * (feeRetrait / 100), 0) / rateAxeAriary
+    
+    // Total des frais en AXE
+    const totalFees = totalDepotsFees + totalRetraitsFees
+    
+    // Utilisateurs actifs AUJOURD'HUI
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const { data: activeToday } = await sb.from('users').select('id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    const { data: transactionsToday } = await sb.from('depots').select('user_id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    const { data: retraitsToday } = await sb.from('retraits').select('user_id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    
+    const activeUserIds = new Set()
+    activeToday?.forEach(u => activeUserIds.add(u.id))
+    transactionsToday?.forEach(t => activeUserIds.add(t.user_id))
+    retraitsToday?.forEach(r => activeUserIds.add(r.user_id))
+    const activeUsersCount = activeUserIds.size
     
     // Mettre à jour le dashboard
-    document.getElementById('stat-axe-circulation').textContent = (totalAXE / 1000000).toFixed(1) + 'M'
-    document.getElementById('stat-users-total').textContent = totalUsers
-    document.getElementById('stat-depots-pending').textContent = depotsCount
-    document.getElementById('stat-retraits-pending').textContent = retraitsCount
+    document.getElementById('stat-axe-circulation').textContent = (totalAXE / 1000000).toFixed(1)
+    document.getElementById('stat-total-fees').textContent = totalFees.toFixed(2)
+    document.getElementById('stat-depots-pending').textContent = totalDepots
+    document.getElementById('stat-retraits-pending').textContent = totalRetraits
+    document.getElementById('stat-usdt-circulation').textContent = totalUSDT.toFixed(2)
+    document.getElementById('stat-ariary-circulation').textContent = (totalAriary / 1000000).toFixed(1)
+    document.getElementById('active-users-label').textContent = activeUsersCount + ' utilisateurs'
+    
+    // Load graphiques
+    await loadLast7DaysChart(rateAxeAriary, rateAxeUsdt)
+    await loadActiveUsersChart(activeUsersCount)
     
     // Mettre à jour la page utilisateurs
     document.getElementById('stat-users-page').textContent = totalUsers
-    document.getElementById('stat-axe-page').textContent = (totalAXE / 1000000).toFixed(1) + 'M'
+    document.getElementById('stat-axe-page').textContent = (totalAXE / 1000000).toFixed(1)
     document.getElementById('stat-staked-page').textContent = (totalStaked / 1000).toFixed(0) + 'K'
   } catch (err) {
     console.error('Erreur chargement stats:', err)
+  }
+}
+
+async function loadLast7DaysChart(rateAxeAriary, rateAxeUsdt) {
+  try {
+    const labels = []
+    const depositsData = []
+    const withdrawsData = []
+    const p2pData = []
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+      
+      labels.push(date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }))
+      
+      // Dépôts du jour (convertis en AXE)
+      const { data: dayDeposits } = await sb.from('depots').select('montant_ariary').gte('created_at', date.toISOString()).lt('created_at', nextDate.toISOString())
+      const depositVolume = (dayDeposits || []).reduce((sum, d) => sum + (d.montant_ariary || 0), 0) / rateAxeAriary
+      depositsData.push(depositVolume)
+      
+      // Retraits du jour (convertis en AXE)
+      const { data: dayWithdraws } = await sb.from('retraits').select('montant_ariary').gte('created_at', date.toISOString()).lt('created_at', nextDate.toISOString())
+      const withdrawVolume = (dayWithdraws || []).reduce((sum, r) => sum + (r.montant_ariary || 0), 0) / rateAxeAriary
+      withdrawsData.push(withdrawVolume)
+      
+      // P2P (simulé pour maintenant, 0 car pas de table)
+      p2pData.push(0)
+    }
+    
+    const canvasEl = document.getElementById('transactionsChart')
+    if (!canvasEl) return
+    
+    if (window.transactionsChartInstance) {
+      window.transactionsChartInstance.destroy()
+    }
+    
+    const ctx = canvasEl.getContext('2d')
+    window.transactionsChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Dépôts', data: depositsData, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1 },
+          { label: 'Retraits', data: withdrawsData, backgroundColor: 'rgba(239, 68, 68, 0.6)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 1 },
+          { label: 'P2P', data: p2pData, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: 'rgba(232, 237, 245, 0.7)' } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: 'rgba(107, 138, 173, 0.7)' }, grid: { color: 'rgba(26, 45, 74, 0.3)' } },
+          x: { ticks: { color: 'rgba(107, 138, 173, 0.7)' }, grid: { color: 'rgba(26, 45, 74, 0.3)' } }
+        }
+      }
+    })
+  } catch (err) {
+    console.error('Erreur graphique 7 jours:', err)
+  }
+}
+
+async function loadActiveUsersChart(count) {
+  try {
+    const canvasEl = document.getElementById('activeUsersChart')
+    if (!canvasEl) return
+    
+    if (window.activeUsersChartInstance) {
+      window.activeUsersChartInstance.destroy()
+    }
+    
+    const ctx = canvasEl.getContext('2d')
+    window.activeUsersChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Actifs', 'Inactifs'],
+        datasets: [{
+          data: [count, Math.max(0, 100 - count)],
+          backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(107, 138, 173, 0.2)'],
+          borderColor: ['rgba(34, 197, 94, 1)', 'rgba(107, 138, 173, 0.5)'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { display: false } }
+      }
+    })
+  } catch (err) {
+    console.error('Erreur widget actifs:', err)
   }
 }
 
@@ -645,8 +905,43 @@ async function viewDepot(id) {
     const { data, error } = await sb.from('depots').select('*, users(nom)').eq('id', id).single()
     if (error) throw error
     
-    alert(`Dépôt #${id}\nUtilisateur: ${data.users.nom}\nMontant: Ar ${data.montant_ariary}\nAXE à créditer: ${data.axe_credite}\nMvola: ${data.mvola}\nStatut: ${data.statut}`)
+    document.getElementById('modal-title').textContent = `📥 Dépôt #${id}`
+    document.getElementById('modal-user').textContent = data.users?.nom || 'N/A'
+    document.getElementById('modal-status').innerHTML = `<span class="status ${data.statut}">${data.statut === 'pending' ? '⏳ En attente' : '✓ Approuvé'}</span>`
+    document.getElementById('modal-date').textContent = new Date(data.created_at).toLocaleDateString('fr-FR')
+    document.getElementById('modal-id').textContent = id
+    document.getElementById('modal-amount').textContent = `Ar ${data.montant_ariary?.toLocaleString() || 0}`
+    document.getElementById('modal-fees').textContent = `Ar ${data.frais?.toLocaleString() || 0} (2%)`
+    
+    const extraInfo = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">AXE À CRÉDITER</div>
+          <div style="font-size:14px;font-weight:700;color:var(--blue);">${data.axe_credite || 0} AXE</div>
+        </div>
+        <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">MVOLA UTILISATEUR</div>
+          <div style="font-size:13px;font-family:var(--mono);">${data.mvola || 'N/A'}</div>
+        </div>
+      </div>
+    `
+    document.getElementById('modal-extra-info').innerHTML = extraInfo
+    
+    const btn = document.getElementById('modal-action-btn')
+    if (data.statut === 'pending') {
+      btn.textContent = '✓ Approuver ce dépôt'
+      btn.style.background = 'rgba(34,197,94,0.15)'
+      btn.style.color = 'var(--green)'
+      btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      btn.onclick = () => approveDepot(id)
+    } else {
+      btn.textContent = '✓ Déjà approuvé'
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+    }
+    
     currentId = id
+    document.getElementById('transaction-modal').style.display = 'flex'
   } catch (err) {
     alert('Erreur : ' + err.message)
   }
@@ -657,17 +952,78 @@ async function viewRetrait(id) {
     const { data, error } = await sb.from('retraits').select('*, users(nom)').eq('id', id).single()
     if (error) throw error
     
-    alert(`Retrait #${id}\nUtilisateur: ${data.users.nom}\nAXE: ${data.axe_envoye}\nAriary: Ar ${data.montant_ariary}\nMvola: ${data.mvola}\nStatut: ${data.statut}`)
+    document.getElementById('modal-title').textContent = `📤 Retrait #${id}`
+    document.getElementById('modal-user').textContent = data.users?.nom || 'N/A'
+    document.getElementById('modal-status').innerHTML = `<span class="status ${data.statut}">${data.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span>`
+    document.getElementById('modal-date').textContent = new Date(data.created_at).toLocaleDateString('fr-FR')
+    document.getElementById('modal-id').textContent = id
+    document.getElementById('modal-amount').textContent = `${data.axe_envoye || 0} AXE`
+    document.getElementById('modal-fees').textContent = `Ar ${data.frais?.toLocaleString() || 0} (3%)`
+    
+    const extraInfo = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">ARIARY NET</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green);">Ar ${(data.montant_ariary - data.frais)?.toLocaleString() || 0}</div>
+        </div>
+        <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">MVOLA DESTINATAIRE</div>
+          <div style="font-size:13px;font-family:var(--mono);">${data.mvola || 'N/A'}</div>
+        </div>
+      </div>
+    `
+    document.getElementById('modal-extra-info').innerHTML = extraInfo
+    
+    const btn = document.getElementById('modal-action-btn')
+    if (data.statut === 'pending') {
+      btn.textContent = '✓ Marquer comme envoyé'
+      btn.style.background = 'rgba(34,197,94,0.15)'
+      btn.style.color = 'var(--green)'
+      btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      btn.onclick = () => completeRetrait(id)
+    } else {
+      btn.textContent = '✓ Déjà envoyé'
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+    }
+    
     currentId = id
+    document.getElementById('transaction-modal').style.display = 'flex'
   } catch (err) {
     alert('Erreur : ' + err.message)
   }
 }
 
-function filterDepots(status, el) {
+async function filterDepots(status, el) {
   document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
   el.classList.add('active')
-  // Implémenter le filtrage
+  
+  try {
+    let query = sb.from('depots').select('*, users(nom)').order('created_at', { ascending: false })
+    
+    if (status !== 'all') {
+      query = query.eq('statut', status)
+    }
+    
+    const { data, error } = await query
+    if (error) throw error
+    
+    const tbody = document.getElementById('depots-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">${d.axe_credite || 0} AXE</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Approuvé'}</span></td>
+        <td><button class="btn btn-view" onclick="viewDepot('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur filtrage dépôts:', err)
+  }
 }
 
 async function loadWallets() {
@@ -678,10 +1034,33 @@ async function loadWallets() {
     if (data) {
       document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
       document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+      
+      // Split Telma
+      const [telmaName, telmaNum] = (data.telma || ' / ').split(' / ')
+      document.getElementById('mvola-telma-nom').value = telmaName.trim()
+      document.getElementById('mvola-telma-numero').value = telmaNum.trim()
+      
+      // Split Orange
+      const [orangeName, orangeNum] = (data.orange || ' / ').split(' / ')
+      document.getElementById('mvola-orange-nom').value = orangeName.trim()
+      document.getElementById('mvola-orange-numero').value = orangeNum.trim()
+      
+      // Split Airtel
+      const [airtelName, airtelNum] = (data.airtel || ' / ').split(' / ')
+      document.getElementById('mvola-aitel-nom').value = airtelName.trim()
+      document.getElementById('mvola-aitel-numero').value = airtelNum.trim()
     }
   } catch (err) {
     console.error('Erreur chargement wallets:', err)
   }
+}
+
+function isValidBNBAddress(address) {
+  if (!address) return false
+  if (!address.startsWith('0x')) return false
+  if (address.length !== 42) return false
+  // Vérifier que c'est hex valide (0x + 40 caractères hex)
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
 }
 
 async function saveWallets() {
@@ -689,13 +1068,34 @@ async function saveWallets() {
     const axeAddr = document.getElementById('wallet-admin-axe').value.trim()
     const usdtAddr = document.getElementById('wallet-admin-usdt').value.trim()
     
+    // Concatener Telma
+    const telmaName = document.getElementById('mvola-telma-nom').value.trim()
+    const telmaNum = document.getElementById('mvola-telma-numero').value.trim()
+    const mvolaTelma = telmaName && telmaNum ? `${telmaName} / ${telmaNum}` : ''
+    
+    // Concatener Orange
+    const orangeName = document.getElementById('mvola-orange-nom').value.trim()
+    const orangeNum = document.getElementById('mvola-orange-numero').value.trim()
+    const mvolaOrange = orangeName && orangeNum ? `${orangeName} / ${orangeNum}` : ''
+    
+    // Concatener Airtel
+    const airtelName = document.getElementById('mvola-aitel-nom').value.trim()
+    const airtelNum = document.getElementById('mvola-aitel-numero').value.trim()
+    const mvolaAirtel = airtelName && airtelNum ? `${airtelName} / ${airtelNum}` : ''
+    
+    // Validation
     if (!axeAddr || !usdtAddr) {
-      alert('Remplissez toutes les adresses')
+      alert('❌ Remplissez toutes les adresses portefeuille')
       return
     }
     
-    if (!axeAddr.startsWith('0x') || !usdtAddr.startsWith('0x')) {
-      alert('Les adresses doivent commencer par 0x')
+    if (!isValidBNBAddress(axeAddr)) {
+      alert('❌ Adresse AXE invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
+      return
+    }
+    
+    if (!isValidBNBAddress(usdtAddr)) {
+      alert('❌ Adresse USDT invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
       return
     }
     
@@ -707,6 +1107,9 @@ async function saveWallets() {
       const { error } = await sb.from('config').update({
         wallet_admin_axe: axeAddr,
         wallet_admin_usdt: usdtAddr,
+        telma: mvolaTelma,
+        orange: mvolaOrange,
+        airtel: mvolaAirtel,
         updated_at: new Date().toISOString(),
       }).eq('id', 1)
       if (error) throw error
@@ -716,11 +1119,14 @@ async function saveWallets() {
         id: 1,
         wallet_admin_axe: axeAddr,
         wallet_admin_usdt: usdtAddr,
+        telma: mvolaTelma,
+        orange: mvolaOrange,
+        airtel: mvolaAirtel,
       })
       if (error) throw error
     }
     
-    alert('✓ Adresses wallets sauvegardées!')
+    alert('✓ Configurations sauvegardées!')
   } catch (err) {
     alert('Erreur : ' + err.message)
   }
@@ -830,30 +1236,142 @@ async function saveStakingConfig() {
   }
 }
 
-function filterRetraits(status, el) {
+async function filterRetraits(status, el) {
   document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
   el.classList.add('active')
-  // Implémenter le filtrage
+  
+  try {
+    let query = sb.from('retraits').select('*, users(nom)').order('created_at', { ascending: false })
+    
+    if (status !== 'all') {
+      query = query.eq('statut', status)
+    }
+    
+    const { data, error } = await query
+    if (error) throw error
+    
+    const tbody = document.getElementById('retraits-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">${d.axe_envoye || 0} AXE</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span></td>
+        <td><button class="btn btn-view" onclick="viewRetrait('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur filtrage retraits:', err)
+  }
 }
 
-function filterTable(id, search) {
-  // Implémenter le filtrage par texte
+function filterTable(tableId, search) {
+  const table = document.getElementById(tableId)
+  if (!table) return
+  
+  const rows = table.querySelectorAll('tbody tr')
+  const searchLower = search.toLowerCase()
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase()
+    if (text.includes(searchLower)) {
+      row.style.display = ''
+    } else {
+      row.style.display = 'none'
+    }
+  })
 }
 
 async function saveFees() {
   try {
-    const { error } = await sb.from('taux').update({
-      depot_fee: parseFloat(document.getElementById('fee-depot').value),
-      retrait_fee: parseFloat(document.getElementById('fee-retrait').value),
-      p2p_fee: parseFloat(document.getElementById('fee-p2p').value),
-      axe_ariary: parseFloat(document.getElementById('rate-axe-ariary').value),
-      axe_usdt: parseFloat(document.getElementById('rate-axe-usdt').value),
-    }).eq('id', 1)
+    const configData = {
+      fee_depot: parseFloat(document.getElementById('fee-depot').value),
+      fee_retrait: parseFloat(document.getElementById('fee-retrait').value),
+      fee_p2p: parseFloat(document.getElementById('fee-p2p').value),
+      rate_axe_ariary: parseFloat(document.getElementById('rate-axe-ariary').value),
+      rate_axe_usdt: parseFloat(document.getElementById('rate-axe-usdt').value),
+      updated_at: new Date().toISOString(),
+    }
     
-    if (error) throw error
-    alert('✓ Frais et taux sauvegardés!')
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update(configData).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert avec id=1
+      const { error } = await sb.from('config').insert({
+        id: 1,
+        ...configData
+      })
+      if (error) throw error
+    }
+    
+    alert('✓ Frais et taux sauvegardés!\n\n🔄 Dashboard mis à jour...')
+    
+    // Rafraîchir IMMÉDIATEMENT le dashboard
+    await loadDashboardStats()
   } catch (err) {
     alert('Erreur : ' + err.message)
+  }
+}
+
+function closeModal() {
+  document.getElementById('transaction-modal').style.display = 'none'
+  currentId = null
+}
+
+async function approveDepot(id) {
+  if (!confirm('Approuver ce dépôt ?')) return
+  
+  try {
+    const { error } = await sb.from('depots').update({ statut: 'approved' }).eq('id', id)
+    if (error) throw error
+    
+    alert('✓ Dépôt approuvé!')
+    closeModal()
+    await loadDepots()
+    await updateBadges()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function completeRetrait(id) {
+  if (!confirm('Marquer ce retrait comme envoyé ?')) return
+  
+  try {
+    const { error } = await sb.from('retraits').update({ statut: 'completed' }).eq('id', id)
+    if (error) throw error
+    
+    alert('✓ Retrait marqué comme envoyé!')
+    closeModal()
+    await loadRetraits()
+    await updateBadges()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function loadFees() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('fee-depot').value = data.fee_depot || 2
+      document.getElementById('fee-retrait').value = data.fee_retrait || 3
+      document.getElementById('fee-p2p').value = data.fee_p2p || 1
+      document.getElementById('rate-axe-ariary').value = data.rate_axe_ariary || 220
+      document.getElementById('rate-axe-usdt').value = data.rate_axe_usdt || 0.045
+    }
+  } catch (err) {
+    console.error('Erreur chargement frais:', err)
   }
 }
 
@@ -866,6 +1384,8 @@ function switchPage(page, el) {
   // Charger les données selon la page
   if (page === 'wallets') {
     loadWallets()
+  } else if (page === 'frais') {
+    loadFees()
   } else if (page === 'utilisateurs') {
     loadUsers()
   } else if (page === 'staking') {
