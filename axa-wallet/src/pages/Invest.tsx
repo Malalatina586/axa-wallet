@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWallet, formatNumber, formatAriary, RATES } from '../contexts/WalletContext'
+import { useWallet, formatNumber, formatAriary, RATES, preciseDecimal } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { ArrowLeft, TrendingUp, Check, Info } from 'lucide-react'
@@ -24,8 +24,8 @@ export default function InvestPage() {
   const input = dark ? 'bg-[#0A1628] border-[#2A3A5A] text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
 
   const amt = parseFloat(amount || '0')
-  const profit = (amt * selected.apy * selected.duration) / 365 / 100
-  const profitAriary = profit * RATES.AXE_ARIARY
+  const profit = preciseDecimal((amt * selected.apy * selected.duration) / 365 / 100, 8)
+  const profitAriary = preciseDecimal(profit * RATES.AXE_ARIARY, 8)
 
   const handleInvest = () => {
     if (!amount || isNaN(amt) || amt < selected.min) return

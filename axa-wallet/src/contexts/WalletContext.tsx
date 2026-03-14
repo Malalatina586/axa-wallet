@@ -35,6 +35,17 @@ export const formatNumber = (n: number, decimals = 2) =>
 export const formatAriary = (n: number) =>
   'Ar ' + new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n)
 
+// 💰 Precise decimal formatting for financial calculations (8 decimals)
+export const preciseDecimal = (n: number, decimals: number = 8): number => {
+  const factor = Math.pow(10, decimals)
+  return Math.round(n * factor) / factor
+}
+
+// Format number for display with configurable decimals
+export const formatDecimal = (n: number, decimals: number = 8): string => {
+  return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(preciseDecimal(n, decimals))
+}
+
 interface Wallet {
   name: string
   address: string

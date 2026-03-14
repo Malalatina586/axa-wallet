@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 // @ts-ignore
 import { QRCodeSVG as QRCode } from 'qrcode.react'
-import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
+import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG, preciseDecimal } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { ArrowUpRight, ArrowDownLeft, Copy, CheckCircle, Clock, AlertCircle, QrCode, Globe, Info } from 'lucide-react'
@@ -47,24 +47,26 @@ export default function SendReceive({ initialTab }: { initialTab?: 'depot' | 're
   const fraisDepot = montant ? Math.round(parseFloat(montant) * 0.02) : 0
   const montantNetDepot = montant ? parseFloat(montant) - fraisDepot : 0
   const axeEstime = devise === 'axe'
-    ? montantNetDepot // Dépôt AXE direct
+    ? preciseDecimal(montantNetDepot, 8)
     : devise === 'ariary' 
-      ? (montantNetDepot / RATES.AXE_ARIARY).toFixed(2)
-      : (montantNetDepot * RATES.AXE_USDT).toFixed(2) // USDT → AXE
+      ? preciseDecimal(montantNetDepot / RATES.AXE_ARIARY, 8)
+      : preciseDecimal(montantNetDepot * RATES.AXE_USDT, 8)
 
   // Calculs pour RETRAIT
   const fraisRetrait = axe ? Math.round(parseFloat(axe) * 0.03) : 0
   const montantNetRetrait = axe ? parseFloat(axe) - fraisRetrait : 0
   const ariaryEstime = devise === 'axe'
-    ? montantNetRetrait // Retrait AXE direct
+    ? preciseDecimal(montantNetRetrait, 8)
     : devise === 'ariary' 
-      ? Math.round(montantNetRetrait * RATES.AXE_ARIARY)
-      : Math.round(montantNetRetrait * RATES.AXE_USDT * RATES.USDT_ARIARY) // AXE → USDT
+      ? Math.round(preciseDecimal(montantNetRetrait * RATES.AXE_ARIARY, 8))
+      : Math.round(preciseDecimal(montantNetRetrait * RATES.AXE_USDT * RATES.USDT_ARIARY, 8))
 
   async function handleDepot() {
     if (!montant || !mvola) { setError('Remplissez tous les champs'); return }
+    const amt = parseFloat(montant)
+    if (isNaN(amt) || amt <= 0) { setError('Montant invalide'); return }
     const min = devise === 'axe' ? 1 : devise === 'ariary' ? 5000 : 1
-    if (parseFloat(montant) < min) { 
+    if (amt < min) { 
       const msg = devise === 'axe' ? 'Minimum 1 AXE' : devise === 'ariary' ? 'Minimum Ar 5,000' : 'Minimum $1 USDT'
       setError(msg)
       return 
@@ -82,8 +84,10 @@ export default function SendReceive({ initialTab }: { initialTab?: 'depot' | 're
 
   async function handleRetrait() {
     if (!axe || !mvola) { setError('Remplissez tous les champs'); return }
-    if (parseFloat(axe) > wallet.balance_axe) { setError('Solde AXE insuffisant'); return }
-    if (parseFloat(axe) < 10) { setError('Minimum 10 AXE'); return }
+    const amt = parseFloat(axe)
+    if (isNaN(amt) || amt <= 0) { setError('Montant invalide'); return }
+    if (amt > wallet.balance_axe) { setError('Solde AXE insuffisant'); return }
+    if (amt < 10) { setError('Minimum 10 AXE'); return }
     setLoading(true); setError('')
     const { error: err } = await submitRetrait(parseFloat(axe), mvola)
     if (err) setError('Erreur : ' + err.message)

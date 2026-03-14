@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWallet, formatNumber, RATES } from '../contexts/WalletContext'
+import { useWallet, formatNumber, RATES, preciseDecimal } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { ArrowLeft, ArrowUpDown, Check } from 'lucide-react'
@@ -21,7 +21,7 @@ export default function ConvertPage() {
   const [success, setSuccess] = useState(false)
 
   const pair = pairs[pairIdx]
-  const received = parseFloat(amount || '0') * pair.rate
+  const received = preciseDecimal(parseFloat(amount || '0') * pair.rate, 8)
   const card = dark ? 'bg-[#1A2A4A]/60 border-[#2A3A5A]/50' : 'bg-white border-gray-200'
   const sub = dark ? 'text-[#94A3B8]' : 'text-gray-500'
   const input = dark ? 'bg-[#0A1628] border-[#2A3A5A] text-white' : 'bg-gray-50 border-gray-200 text-gray-900'

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWallet, formatNumber } from '../contexts/WalletContext'
+import { useWallet, formatNumber, preciseDecimal } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { ArrowLeft, Layers, TrendingUp, Lock, Gift } from 'lucide-react'
@@ -74,9 +74,9 @@ export default function StakingPage() {
         }
 
         // Calculate hourly reward: (staked_axe * APY / 365 / 24) / 100
-        const hourly = (wallet.staked_axe * stakingConfig.apy / 365 / 24) / 100
+        const hourly = preciseDecimal((wallet.staked_axe * stakingConfig.apy / 365 / 24) / 100, 8)
         setHourlyReward(hourly)
-        setDailyReward(hourly * 24)
+        setDailyReward(preciseDecimal(hourly * 24, 8))
 
         // Calculate accumulated rewards (time since first position started)
         let totalAccumulated = 0
@@ -85,8 +85,8 @@ export default function StakingPage() {
         positions.forEach((pos: any) => {
           const startTime = new Date(pos.started_at).getTime()
           const hoursElapsed = (now - startTime) / (1000 * 60 * 60)
-          const positionHourlyReward = (pos.amount * stakingConfig.apy / 365 / 24) / 100
-          const positionAccumulated = positionHourlyReward * hoursElapsed - (pos.claimed_rewards || 0)
+          const positionHourlyReward = preciseDecimal((pos.amount * stakingConfig.apy / 365 / 24) / 100, 8)
+          const positionAccumulated = preciseDecimal(positionHourlyReward * hoursElapsed - (pos.claimed_rewards || 0), 8)
           totalAccumulated += Math.max(0, positionAccumulated)
         })
 

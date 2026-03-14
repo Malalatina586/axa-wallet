@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
+import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG, preciseDecimal } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { Banknote, Zap, Info } from 'lucide-react'
@@ -32,7 +32,12 @@ export default function P2PPage() {
       setError('Remplissez tous les champs')
       return
     }
-    if (parseFloat(ariaryAmount) > wallet.balance_ariary) {
+    const amt = parseFloat(ariaryAmount)
+    if (isNaN(amt) || amt <= 0) {
+      setError('Montant invalide')
+      return
+    }
+    if (amt > wallet.balance_ariary) {
       setError('Solde insuffisant')
       return
     }
@@ -55,7 +60,12 @@ export default function P2PPage() {
       setError('Remplissez tous les champs')
       return
     }
-    if (parseFloat(axeAmount) > wallet.balance_axe) {
+    const amt = parseFloat(axeAmount)
+    if (isNaN(amt) || amt <= 0) {
+      setError('Montant invalide')
+      return
+    }
+    if (amt > wallet.balance_axe) {
       setError('Solde insuffisant')
       return
     }
@@ -160,7 +170,7 @@ export default function P2PPage() {
                 placeholder={axeDevise === 'axe' ? 'Ex: 100' : 'Ex: 5'} className={`w-full border rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 ${input}`} />
               {axeAmount && (
                 <p className="text-blue-400 text-xs mt-1">
-                  ≈ {axeDevise === 'axe' ? (parseFloat(axeAmount) * RATES.AXE_USDT).toFixed(2) + ' USDT' : (parseFloat(axeAmount) / RATES.AXE_USDT).toFixed(2) + ' AXE'}
+                  ≈ {axeDevise === 'axe' ? formatNumber(preciseDecimal(parseFloat(axeAmount) * RATES.AXE_USDT, 8), 8) + ' USDT' : formatNumber(preciseDecimal(parseFloat(axeAmount) / RATES.AXE_USDT, 8), 8) + ' AXE'}
                 </p>
               )}
             </div>
