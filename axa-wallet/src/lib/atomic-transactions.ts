@@ -29,7 +29,8 @@ export async function atomicTransferP2PAriary(
       return { success: false, error: error.message }
     }
 
-    const result = data?.[0]
+    // Supabase RPC returns object directly, not in array
+    const result = Array.isArray(data) ? data[0] : data
     if (!result) return { success: false, error: 'Invalid response' }
 
     return {
@@ -38,7 +39,7 @@ export async function atomicTransferP2PAriary(
       displayID: result.display_id,
     }
   } catch (err) {
-    console.error('❌ Transfer error:', err)
+    console.error('❌ Transfer error (atomicTransferP2PAriary):', err)
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
@@ -71,7 +72,8 @@ export async function atomicTransferP2PAXE(
       return { success: false, error: error.message }
     }
 
-    const result = data?.[0]
+    // Supabase RPC returns object directly, not in array
+    const result = Array.isArray(data) ? data[0] : data
     if (!result) return { success: false, error: 'Invalid response' }
 
     return {
@@ -80,7 +82,7 @@ export async function atomicTransferP2PAXE(
       displayID: result.display_id,
     }
   } catch (err) {
-    console.error('❌ Transfer error:', err)
+    console.error('❌ Transfer error (atomicTransferP2PAXE):', err)
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
@@ -113,7 +115,8 @@ export async function atomicTransferP2PUSDT(
       return { success: false, error: error.message }
     }
 
-    const result = data?.[0]
+    // Supabase RPC returns object directly, not in array
+    const result = Array.isArray(data) ? data[0] : data
     if (!result) return { success: false, error: 'Invalid response' }
 
     return {
@@ -122,7 +125,7 @@ export async function atomicTransferP2PUSDT(
       displayID: result.display_id,
     }
   } catch (err) {
-    console.error('❌ Transfer error:', err)
+    console.error('❌ Transfer error (atomicTransferP2PUSDT):', err)
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
   }
 }
