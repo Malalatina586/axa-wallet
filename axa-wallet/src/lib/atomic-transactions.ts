@@ -12,14 +12,16 @@ export async function atomicTransferP2PAriary(
   senderID: string,
   recipientID: string,
   amountAriary: number,
-  feePercentage: number = 1
-): Promise<{ success: boolean; error?: string }> {
+  feePercentage: number = 1,
+  displayID?: string
+): Promise<{ success: boolean; error?: string; displayID?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_ariary', {
       sender_id: senderID,
       recipient_id: recipientID,
       amount: amountAriary,
       fee_percentage: feePercentage,
+      display_id: displayID || undefined,
     })
 
     if (error) {
@@ -33,6 +35,7 @@ export async function atomicTransferP2PAriary(
     return {
       success: result.success,
       error: result.error,
+      displayID: result.display_id,
     }
   } catch (err) {
     console.error('❌ Transfer error:', err)
@@ -50,8 +53,9 @@ export async function atomicTransferP2PAXE(
   recipientID: string,
   amountAXE: number,
   txHash: string,
-  feePercentage: number = 1
-): Promise<{ success: boolean; error?: string }> {
+  feePercentage: number = 1,
+  displayID?: string
+): Promise<{ success: boolean; error?: string; displayID?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_axe', {
       sender_id: senderID,
@@ -59,6 +63,7 @@ export async function atomicTransferP2PAXE(
       amount: amountAXE,
       tx_hash: txHash,
       fee_percentage: feePercentage,
+      display_id: displayID || undefined,
     })
 
     if (error) {
@@ -72,6 +77,7 @@ export async function atomicTransferP2PAXE(
     return {
       success: result.success,
       error: result.error,
+      displayID: result.display_id,
     }
   } catch (err) {
     console.error('❌ Transfer error:', err)
@@ -89,8 +95,9 @@ export async function atomicTransferP2PUSDT(
   recipientID: string,
   amountUSDT: number,
   txHash: string,
-  feePercentage: number = 1
-): Promise<{ success: boolean; error?: string }> {
+  feePercentage: number = 1,
+  displayID?: string
+): Promise<{ success: boolean; error?: string; displayID?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_usdt', {
       sender_id: senderID,
@@ -98,6 +105,7 @@ export async function atomicTransferP2PUSDT(
       amount: amountUSDT,
       tx_hash: txHash,
       fee_percentage: feePercentage,
+      display_id: displayID || undefined,
     })
 
     if (error) {
@@ -111,6 +119,7 @@ export async function atomicTransferP2PUSDT(
     return {
       success: result.success,
       error: result.error,
+      displayID: result.display_id,
     }
   } catch (err) {
     console.error('❌ Transfer error:', err)

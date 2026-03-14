@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import { supabase, User } from '../lib/supabase'
 import { encryptPrivateKey } from '../lib/crypto'
+import { generateUserDisplayID } from '../lib/id-generator'
 import { Session } from '@supabase/supabase-js'
 
 // Générer un wallet BNB Chain (EVM-compatible)
@@ -61,8 +62,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 🔐 ENCRYPT private key with password before storing!
         const encryptedPrivateKey = await encryptPrivateKey(privateKey, password)
         
+        // 🆔 Generate stylized user ID
+        const displayID = generateUserDisplayID()
+        
         await supabase.from('users').insert({
           id: data.user.id,
+          display_id: displayID,
           nom,
           telephone,
           wallet_address: address,

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { sendAXE, getAXEBalance, getUSDTBalance, syncBlockchainBalance, sendFeesToAdmin } from '../lib/blockchain'
 import { decryptPrivateKey } from '../lib/crypto'
+import { generateTransactionDisplayID } from '../lib/id-generator'
 import { atomicTransferP2PAriary, atomicTransferP2PAXE, atomicTransferP2PUSDT, validateP2PTransfer } from '../lib/atomic-transactions'
 import { verifyBlockchainTransaction, sendVerifiedAXETransfer, sendVerifiedUSDTTransfer } from '../lib/blockchain-verification'
 
@@ -357,8 +358,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: 'Impossible de déchiffrer la clé privée' }
       }
 
+      // 🆔 Generate display ID for this transaction
+      const transactionDisplayID = generateTransactionDisplayID()
+
       // 🔄 Call atomic RPC function - ALL-OR-NOTHING transaction
-      const result = await atomicTransferP2PAriary(session.user.id, recipientUID, montantAriary, feePercentage)
+      const result = await atomicTransferP2PAriary(session.user.id, recipientUID, montantAriary, feePercentage, transactionDisplayID)
       
       if (!result.success || result.error) {
         return { error: result.error || 'Transfert échoué' }
@@ -470,7 +474,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: 'Transaction hash not returned from blockchain' }
       }
 
-      const dbResult = await atomicTransferP2PAXE(session.user.id, recipientUID, amountAXE, txHash, feePercentage)
+      // 🆔 Generate display ID for this transaction
+      const transactionDisplayID = generateTransactionDisplayID()
+
+      const dbResult = await atomicTransferP2PAXE(session.user.id, recipientUID, amountAXE, txHash, feePercentage, transactionDisplayID)
 
       if (!dbResult.success || dbResult.error) {
         // Blockchain succeeded but DB failed - critical error!
@@ -588,7 +595,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: 'Transaction hash not returned from blockchain' }
       }
 
-      const dbResult = await atomicTransferP2PUSDT(session.user.id, recipientUID, amountUSDT, txHash, feePercentage)
+      // 🆔 Generate display ID for this transaction
+      const transactionDisplayID = generateTransactionDisplayID()
+
+      const dbResult = await atomicTransferP2PUSDT(session.user.id, recipientUID, amountUSDT, txHash, feePercentage, transactionDisplayID)
 
       if (!dbResult.success || dbResult.error) {
         console.warn('⚠️ CRITICAL: Blockchain TX succeeded but DB update failed!', { txHash, error: dbResult.error })
