@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import { sendAXE, getAXEBalance, getUSDTBalance, syncBlockchainBalance } from '../lib/blockchain'
 import { decryptPrivateKey } from '../lib/crypto'
-import { atomicTransferP2PAriary, atomicTransferP2PAXE, validateP2PTransfer } from '../lib/atomic-transactions'
-import { verifyBlockchainTransaction, sendVerifiedAXETransfer } from '../lib/blockchain-verification'
+import { atomicTransferP2PAriary, atomicTransferP2PAXE, atomicTransferP2PUSDT, validateP2PTransfer } from '../lib/atomic-transactions'
+import { verifyBlockchainTransaction, sendVerifiedAXETransfer, sendVerifiedUSDTTransfer } from '../lib/blockchain-verification'
 
 // AXE Token Contract Address on BNB Chain (Madagascar)
 const AXE_TOKEN_ADDRESS = '0xc8d07b5c2403efFa58aDCCC23f8D4217e94F11Fa'
@@ -69,6 +69,7 @@ interface WalletCtx {
   sendAXEDirect: (recipientAddr: string, amountAXE: number) => Promise<{txHash?: string | null; error?: string}>
   sendP2PAriary: (recipientUID: string, montantAriary: number) => Promise<{success?: boolean; error?: string}>
   sendP2PAXE: (recipientUID: string, amountAXE: number) => Promise<{txHash?: string | null; error?: string}>
+  sendP2PUSDT: (recipientUID: string, amountUSDT: number) => Promise<{txHash?: string | null; error?: string}>
 }
 
 const WalletContext = createContext<WalletCtx>({} as WalletCtx)
@@ -423,10 +424,97 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  async function sendP2PUSDT(recipientUID: string, amountUSDT: number) {
+    if (!session?.user?.id) return { error: 'Non connecté' }
+    
+    try {
+      // 🔐 Validate sender and recipient
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountUSDT, 'usdt')
+      if (!validation.valid) {
+        return { error: validation.error || 'Validation échouée' }
+      }
+
+      // Get sender's encrypted private key
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('wallet_private_key')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (!senderData?.wallet_private_key) {
+        return { error: 'Clé privée non trouvée' }
+      }
+
+      // Get recipient's wallet address
+      const { data: recipientData } = await supabase
+        .from('users')
+        .select('wallet_address')
+        .eq('id', recipientUID)
+        .single()
+      
+      if (!recipientData?.wallet_address) {
+        return { error: 'Adresse wallet du destinataire non trouvée' }
+      }
+
+      // 🔐 DECRYPT private key
+      let decryptedKey: string
+      try {
+        decryptedKey = await decryptPrivateKey(senderData.wallet_private_key, session.user?.email || '')
+      } catch (err) {
+        return { error: 'Impossible de déchiffrer la clé privée' }
+      }
+
+      // Create ethers.Wallet signer from decrypted key
+      const signer = new ethers.Wallet(decryptedKey)
+
+      // USDT Contract Address on BSC Mainnet
+      const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955'
+      const USDT_DECIMALS = 6
+
+      // Convert to USDT smallest unit (6 decimals)
+      const amountInSmallestUnit = ethers.parseUnits(amountUSDT.toString(), USDT_DECIMALS)
+
+      // 🚀 Send USDT transfer with blockchain verification
+      const transferResult = await sendVerifiedUSDTTransfer(
+        signer,
+        USDT_ADDRESS,
+        recipientData.wallet_address,
+        amountInSmallestUnit,
+        (status: string) => console.log('USDT Transfer status:', status)
+      )
+
+      if (transferResult.error) {
+        return { error: transferResult.error }
+      }
+
+      // ✅ Blockchain transfer confirmed - now atomic DB update
+      const txHash = transferResult.txHash
+      if (!txHash) {
+        return { error: 'Transaction hash not returned from blockchain' }
+      }
+
+      const dbResult = await atomicTransferP2PUSDT(session.user.id, recipientUID, amountUSDT, txHash)
+
+      if (!dbResult.success || dbResult.error) {
+        console.warn('⚠️ CRITICAL: Blockchain TX succeeded but DB update failed!', { txHash, error: dbResult.error })
+        return { error: dbResult.error || 'Enregistrement DB échoué. Contactez support.' }
+      }
+
+      // ✅ Blockchain + DB both succeeded
+      setWallet(prev => ({ ...prev, balance_usdt: prev.balance_usdt - amountUSDT }))
+      await refreshWallet()
+
+      return { txHash }
+    } catch (err: any) {
+      console.error('❌ P2P USDT transfer error:', err)
+      return { error: err.message || 'Erreur lors du transfert' }
+    }
+  }
+
   Object.assign(RATES, rates)
 
   return (
-    <WalletContext.Provider value={{ wallet, transactions, priceHistory, loading, addTransaction, updateBalance, refreshWallet, submitDepot, submitRetrait, saveWalletAddress, sendAXEDirect, sendP2PAriary, sendP2PAXE }}>
+    <WalletContext.Provider value={{ wallet, transactions, priceHistory, loading, addTransaction, updateBalance, refreshWallet, submitDepot, submitRetrait, saveWalletAddress, sendAXEDirect, sendP2PAriary, sendP2PAXE, sendP2PUSDT }}>
       {children}
     </WalletContext.Provider>
   )

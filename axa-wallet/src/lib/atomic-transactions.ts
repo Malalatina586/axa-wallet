@@ -76,6 +76,43 @@ export async function atomicTransferP2PAXE(
 }
 
 /**
+ * Atomic P2P USDT transfer using database transaction
+ * ✅ Guaranteed atomicity + blockchain tx reference stored
+ * @param txHash - Blockchain transaction hash (for verification)
+ */
+export async function atomicTransferP2PUSDT(
+  senderID: string,
+  recipientID: string,
+  amountUSDT: number,
+  txHash: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('transfer_p2p_usdt', {
+      sender_id: senderID,
+      recipient_id: recipientID,
+      amount: amountUSDT,
+      tx_hash: txHash,
+    })
+
+    if (error) {
+      console.error('❌ RPC Error:', error)
+      return { success: false, error: error.message }
+    }
+
+    const result = data?.[0]
+    if (!result) return { success: false, error: 'Invalid response' }
+
+    return {
+      success: result.success,
+      error: result.error,
+    }
+  } catch (err) {
+    console.error('❌ Transfer error:', err)
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
+/**
  * Verify status before calling atomic transfer
  * Pre-checks to avoid unnecessary RPC calls
  */
@@ -83,7 +120,7 @@ export async function validateP2PTransfer(
   senderID: string,
   recipientID: string,
   amount: number,
-  currency: 'ariary' | 'axe'
+  currency: 'ariary' | 'axe' | 'usdt'
 ): Promise<{ valid: boolean; error?: string }> {
   try {
     // Check sender and recipient exist
@@ -104,13 +141,14 @@ export async function validateP2PTransfer(
     if (!recipient) return { valid: false, error: 'Recipient not found' }
 
     // Check sender balance
+    const balanceField = currency === 'ariary' ? 'balance_ariary' : currency === 'axe' ? 'balance_axe' : 'balance_usdt'
+    
     const { data: senderData } = await supabase
       .from('users')
-      .select(currency === 'ariary' ? 'balance_ariary' : 'balance_axe')
+      .select(balanceField)
       .eq('id', senderID)
       .single()
 
-    const balanceField = currency === 'ariary' ? 'balance_ariary' : 'balance_axe'
     const balance = ((senderData?.[balanceField as keyof typeof senderData] as unknown) as number) || 0
 
     if (balance < amount) {

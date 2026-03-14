@@ -74,26 +74,27 @@ export async function verifyBlockchainTransaction(txHash: string): Promise<{
 }
 
 /**
- * Enhanced transfer function:
+ * Generic verified transfer for any ERC-20 token (AXE, USDT, etc)
  * 1. Send transaction to blockchain
  * 2. Wait for confirmation
- * 3. Update database atomically
+ * 3. Return transaction hash for atomic DB update
  */
-export async function sendVerifiedAXETransfer(
+export async function sendVerifiedTokenTransfer(
   signer: ethers.Signer,
   tokenAddress: string,
   recipientAddress: string,
   amount: ethers.BigNumberish,
-  onProgress: (status: string) => void
+  tokenName: string = 'Token',
+  onProgress: (status: string) => void = () => {}
 ): Promise<{
   success: boolean
   txHash?: string
   error?: string
 }> {
   try {
-    onProgress('💳 Building transaction...')
+    onProgress(`💳 Building ${tokenName} transaction...`)
 
-    // AXE Token Contract ABI (ERC-20)
+    // ERC-20 Token Contract ABI
     const erc20ABI = [
       'function transfer(address to, uint256 amount) returns (bool)',
       'function balanceOf(address owner) view returns (uint256)',
@@ -102,33 +103,46 @@ export async function sendVerifiedAXETransfer(
     const contract = new ethers.Contract(tokenAddress, erc20ABI, signer)
 
     // Send transaction
-    onProgress('📤 Sending transaction...')
+    onProgress(`📤 Sending ${tokenName} transaction...`)
     const tx = await contract.transfer(recipientAddress, amount)
     const txHash = tx.hash
 
-    onProgress('⏳ Waiting for blockchain confirmation...')
+    onProgress(`⏳ Waiting for blockchain confirmation (${tokenName})...`)
     const receipt = await tx.wait(CONFIRMATIONS_NEEDED)
 
     if (!receipt || receipt.status === 0) {
       return {
         success: false,
-        error: 'Transaction failed on blockchain',
+        error: `${tokenName} transaction failed on blockchain`,
       }
     }
 
-    onProgress('✅ Transaction verified!')
+    onProgress(`✅ ${tokenName} transaction verified!`)
 
     return {
       success: true,
       txHash,
     }
   } catch (err) {
-    console.error('❌ Transfer error:', err)
+    console.error(`❌ ${tokenName} transfer error:`, err)
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Transfer failed',
+      error: err instanceof Error ? err.message : `${tokenName} transfer failed`,
     }
   }
+}
+
+/**
+ * Alias for backward compatibility
+ */
+export async function sendVerifiedUSDTTransfer(
+  signer: ethers.Signer,
+  usdtAddress: string,
+  recipientAddress: string,
+  amount: ethers.BigNumberish,
+  onProgress: (status: string) => void = () => {}
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  return sendVerifiedTokenTransfer(signer, usdtAddress, recipientAddress, amount, 'USDT', onProgress)
 }
 
 /**
@@ -137,9 +151,23 @@ export async function sendVerifiedAXETransfer(
  * ✅ Prevents "transaction sent but failed" → DB mismatch
  * ✅ Provides real-time progress to user
  * ✅ Graceful error handling with user-friendly messages
+ * ✅ Supports AXE, USDT, and any ERC-20 token
  */
+
+// Alias for backward compatibility
+export async function sendVerifiedAXETransfer(
+  signer: ethers.Signer,
+  tokenAddress: string,
+  recipientAddress: string,
+  amount: ethers.BigNumberish,
+  onProgress: (status: string) => void
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  return sendVerifiedTokenTransfer(signer, tokenAddress, recipientAddress, amount, 'AXE', onProgress)
+}
 
 export const BlockchainService = {
   verifyBlockchainTransaction,
   sendVerifiedAXETransfer,
+  sendVerifiedUSDTTransfer,
+  sendVerifiedTokenTransfer,
 }
