@@ -147,8 +147,45 @@ export async function validateP2PTransfer(
 
     if (!recipient) return { valid: false, error: 'Recipient not found' }
 
-    // Check sender balance
-    const balanceField = currency === 'ariary' ? 'balance_ariary' : currency === 'axe' ? 'balance_axe' : 'balance_usdt'
+    // 🔥 For Ariary: check Ariary balance AND AXE for fees
+    if (currency === 'ariary') {
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('balance_ariary, balance_axe')
+        .eq('id', senderID)
+        .single()
+
+      const ariaryBalance = senderData?.balance_ariary || 0
+      const axeBalance = senderData?.balance_axe || 0
+
+      // Check Ariary balance
+      if (ariaryBalance < amount) {
+        return { valid: false, error: `Insufficient Ariary balance` }
+      }
+
+      // Calculate fee in AXE (amount valorized in AXE)
+      // 1 AXE = 1000 Ariary, so value_in_axe = amount / 1000
+      const valueInAXE = amount / 1000
+      const feeInAXE = valueInAXE * feePercentage / 100
+
+      // Check AXE balance for fee
+      if (axeBalance < feeInAXE) {
+        return { 
+          valid: false, 
+          error: `❌ Insufficient AXE for P2P fee (need ${feeInAXE.toFixed(8)} AXE, have ${axeBalance.toFixed(8)} AXE)`,
+          fee: feeInAXE
+        }
+      }
+
+      return { 
+        valid: true,
+        totalCost: amount, // Ariary amount
+        fee: feeInAXE // Fee in AXE
+      }
+    }
+
+    // For AXE/USDT: check both token balance AND AXE for fee
+    const balanceField = currency === 'axe' ? 'balance_axe' : 'balance_usdt'
     
     const { data: senderData } = await supabase
       .from('users')
@@ -163,13 +200,10 @@ export async function validateP2PTransfer(
       return { valid: false, error: `Insufficient ${currency} balance` }
     }
 
-    // 🔥 NEW: Check AXE fee requirement
+    // Calculate fee in AXE
     let feeInAXE = 0
     
-    if (currency === 'ariary') {
-      // Fee for Ariary: amount * fee% / 100 / 1000 (convert to AXE)
-      feeInAXE = (amount * feePercentage / 100) / 1000
-    } else if (currency === 'axe') {
+    if (currency === 'axe') {
       // Fee for AXE: amount * fee%
       feeInAXE = amount * feePercentage / 100
     } else if (currency === 'usdt') {

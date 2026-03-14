@@ -331,10 +331,30 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       // Get fee percentage from config
       const feePercentage = await getFeePercentage()
 
-      // 🔐 Validate sender and recipient (includes AXE fee check)
+      // 🔐 Validate sender and recipient
+      // NOTE: P2P Ariary requires AXE for fees (fees calculated from Ariary value in AXE)
       const validation = await validateP2PTransfer(session.user.id, recipientUID, montantAriary, 'ariary', feePercentage)
       if (!validation.valid) {
         return { error: validation.error || 'Validation échouée' }
+      }
+
+      // Get sender's encrypted private key (needed for fee sending)
+      const { data: senderData } = await supabase
+        .from('users')
+        .select('wallet_private_key')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (!senderData?.wallet_private_key) {
+        return { error: 'Clé privée non trouvée' }
+      }
+
+      // 🔐 DECRYPT private key (for fee sending)
+      let decryptedKey: string
+      try {
+        decryptedKey = await decryptPrivateKey(senderData.wallet_private_key, session.user?.email || '')
+      } catch (err) {
+        return { error: 'Impossible de déchiffrer la clé privée' }
       }
 
       // 🔄 Call atomic RPC function - ALL-OR-NOTHING transaction
@@ -344,14 +364,38 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: result.error || 'Transfert échoué' }
       }
 
-      // ✅ Transaction succeeded atomically at DB level
-      // Update local state
-      setWallet(prev => ({ ...prev, balance_ariary: wallet.balance_ariary - montantAriary }))
+      // ✅ Transaction succeeded - send fees to admin wallet
+      const feeAmount = validation.fee || 0
       
-      // Refresh full wallet to get correct balances from DB
+      // 🔥 Send fees to admin wallet in AXE
+      if (feeAmount > 0) {
+        try {
+          const { data: configData } = await supabase
+            .from('config')
+            .select('wallet_admin_axe')
+            .eq('id', 1)
+            .single()
+          
+          const adminAddress = configData?.wallet_admin_axe
+          if (adminAddress) {
+            // Send fees to admin (non-blocking - don't wait)
+            sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)
+              .then(result => {
+                if (result.txHash) {
+                  console.log('✅ P2P Ariary fees sent to admin:', { txHash: result.txHash, amount: feeAmount })
+                }
+              })
+              .catch(err => console.warn('⚠️ Fee collection ongoing...', err))
+          }
+        } catch (err) {
+          console.warn('⚠️ Could not send fees, but P2P Ariary transaction succeeded')
+        }
+      }
+
+      setWallet(prev => ({ ...prev, balance_ariary: prev.balance_ariary - montantAriary, balance_axe: prev.balance_axe - feeAmount }))
       await refreshWallet()
 
-      return { success: true, fee: validation.fee }
+      return { success: true, fee: feeAmount }
     } catch (err: any) {
       console.error('❌ P2P Ariary transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }
