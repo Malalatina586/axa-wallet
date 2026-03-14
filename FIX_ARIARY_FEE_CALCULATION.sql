@@ -1,15 +1,3 @@
--- ============================================================
--- FIX: Correct P2P Ariary fee calculation
--- ============================================================
--- BEFORE: v_fee_amount := (amount * fee_percentage / 100) / 1000;
--- This was WRONG: (50000 * 1 / 100) / 1000 = 500 / 1000 = 0.5 AXE (by chance correct, but formula wrong)
---
--- CORRECT: v_fee_amount := (amount / 1000) * (fee_percentage / 100);
--- Logic: 1 AXE = 1000 Ariary
---   - 50,000 Ariary = 50 AXE
---   - Fee = 50 AXE * 1% = 0.5 AXE
--- ============================================================
-
 CREATE OR REPLACE FUNCTION transfer_p2p_ariary(
   sender_id UUID,
   recipient_id UUID,
@@ -20,7 +8,6 @@ RETURNS JSON AS $$
 DECLARE
   v_sender_balance NUMERIC;
   v_fee_amount NUMERIC;
-  v_result JSON;
 BEGIN
   -- Validate users exist
   IF NOT EXISTS (SELECT 1 FROM users WHERE id = sender_id) THEN
@@ -38,7 +25,7 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'Insufficient Ariary balance');
   END IF;
 
-  -- 🔥 CORRECTED FEE CALCULATION
+  -- CORRECTED FEE CALCULATION
   -- Fee in AXE = (amount in Ariary / 1000) * (fee_percentage / 100)
   -- Example: 50,000 Ariary at 1% fee = (50000/1000) * (1/100) = 50 * 0.01 = 0.5 AXE
   v_fee_amount := (amount / 1000.0) * (fee_percentage / 100.0);

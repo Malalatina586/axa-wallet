@@ -372,11 +372,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const { data: configData } = await supabase
             .from('config')
-            .select('wallet_admin_axe')
+            .select('wallet_admin_fee')
             .eq('id', 1)
             .single()
           
-          const adminAddress = configData?.wallet_admin_axe
+          const adminAddress = configData?.wallet_admin_fee
           if (adminAddress) {
             // Send fees to admin (non-blocking - don't wait)
             sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)
@@ -486,11 +486,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const { data: configData } = await supabase
             .from('config')
-            .select('wallet_admin_axe')
+            .select('wallet_admin_fee')
             .eq('id', 1)
             .single()
           
-          const adminAddress = configData?.wallet_admin_axe
+          const adminAddress = configData?.wallet_admin_fee
           if (adminAddress) {
             // Send fees to admin (non-blocking - don't wait)
             sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)
@@ -603,11 +603,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const { data: configData } = await supabase
             .from('config')
-            .select('wallet_admin_axe')
+            .select('wallet_admin_fee')
             .eq('id', 1)
             .single()
           
-          const adminAddress = configData?.wallet_admin_axe
+          const adminAddress = configData?.wallet_admin_fee
           if (adminAddress) {
             // Send fees to admin (non-blocking - don't wait)
             sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)

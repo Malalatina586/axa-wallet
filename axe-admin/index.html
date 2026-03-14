@@ -496,6 +496,12 @@ tr:hover td{background:rgba(255,255,255,0.02);}
               style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
             <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts USDT des utilisateurs</div>
           </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">🔐 ADRESSE WALLET RECEPTION DES FRAIS (BNB Chain)</div>
+            <input type="text" id="wallet-admin-fee" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée UNIQUEMENT pour recevoir les frais automatiques du système</div>
+          </div>
         </div>
       </div>
 
@@ -1285,6 +1291,7 @@ async function loadWallets() {
     if (data) {
       document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
       document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+      document.getElementById('wallet-admin-fee').value = data.wallet_admin_fee || ''
       
       // Split Telma
       const [telmaName, telmaNum] = (data.telma || ' / ').split(' / ')
@@ -1318,6 +1325,7 @@ async function saveWallets() {
   try {
     const axeAddr = document.getElementById('wallet-admin-axe').value.trim()
     const usdtAddr = document.getElementById('wallet-admin-usdt').value.trim()
+    const feeAddr = document.getElementById('wallet-admin-fee').value.trim()
     
     // Concatener Telma
     const telmaName = document.getElementById('mvola-telma-nom').value.trim()
@@ -1335,7 +1343,7 @@ async function saveWallets() {
     const mvolaAirtel = airtelName && airtelNum ? `${airtelName} / ${airtelNum}` : ''
     
     // Validation
-    if (!axeAddr || !usdtAddr) {
+    if (!axeAddr || !usdtAddr || !feeAddr) {
       alert('❌ Remplissez toutes les adresses portefeuille')
       return
     }
@@ -1349,6 +1357,11 @@ async function saveWallets() {
       alert('❌ Adresse USDT invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
       return
     }
+
+    if (!isValidBNBAddress(feeAddr)) {
+      alert('❌ Adresse FEE invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
+      return
+    }
     
     // Vérifier si la config existe
     const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
@@ -1358,6 +1371,7 @@ async function saveWallets() {
       const { error } = await sb.from('config').update({
         wallet_admin_axe: axeAddr,
         wallet_admin_usdt: usdtAddr,
+        wallet_admin_fee: feeAddr,
         telma: mvolaTelma,
         orange: mvolaOrange,
         airtel: mvolaAirtel,
@@ -1370,6 +1384,7 @@ async function saveWallets() {
         id: 1,
         wallet_admin_axe: axeAddr,
         wallet_admin_usdt: usdtAddr,
+        wallet_admin_fee: feeAddr,
         telma: mvolaTelma,
         orange: mvolaOrange,
         airtel: mvolaAirtel,
@@ -1491,6 +1506,7 @@ async function loadWalletsConfig() {
     if (data) {
       document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
       document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+      document.getElementById('wallet-admin-fee').value = data.wallet_admin_fee || ''
     }
   } catch (err) {
     console.error('Erreur chargement config wallets:', err)
@@ -1740,7 +1756,7 @@ function switchPage(page, el) {
   
   // Charger les données selon la page
   if (page === 'wallets') {
-    loadWalletsConfig()
+    loadWallets()
   } else if (page === 'frais') {
     loadFeeConfig()
   } else if (page === 'utilisateurs') {
