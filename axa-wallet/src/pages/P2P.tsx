@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { useWallet, formatAriary, formatNumber, RATES } from '../contexts/WalletContext'
+import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
-import { Banknote, Zap } from 'lucide-react'
+import { Banknote, Zap, Info } from 'lucide-react'
 
 export default function P2PPage() {
   const { wallet, sendP2PAriary, sendP2PAXE, refreshWallet } = useWallet()
@@ -78,6 +78,15 @@ export default function P2PPage() {
       <div className="px-5 pt-10 pb-6">
         <h1 className="text-xl font-bold mb-1">Transfert P2P</h1>
         <p className={`text-xs ${sub} mb-5`}>Envoyez de l'argent à un autre utilisateur</p>
+
+        {/* Info BSC */}
+        <div className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-3 mb-5 flex gap-2">
+          <Info size={14} className="text-purple-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-purple-400">P2P sur {NETWORK_CONFIG.name}</p>
+            <p className={`text-xs ${sub}`}>Paiements atomiques avec vérification blockchain pour <strong>AXE</strong></p>
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className={`flex rounded-2xl overflow-hidden border mb-6 gap-2 ${card}`}>

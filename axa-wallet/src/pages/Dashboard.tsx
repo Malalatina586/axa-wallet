@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoAxeWallet from '../assets/logo-axe-wallet.png'
-import { useWallet, formatAriary, formatNumber, RATES } from '../contexts/WalletContext'
+import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
 import { LineChart, Line, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 import {
   Send, Download, ArrowLeftRight, Layers, TrendingUp, TrendingDown,
-  ArrowDownLeft, ArrowUpRight, RefreshCw, Wallet, Users, Bell, X, Sun, Moon
+  ArrowDownLeft, ArrowUpRight, RefreshCw, Wallet, Users, Bell, X, Sun, Moon, Globe
 } from 'lucide-react'
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -84,7 +84,12 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <img src={logoAxeWallet} alt="AXE Wallet" className="h-8 object-contain" />
-            <p className={`text-xs ${sub} mt-1`}>Bienvenue, {wallet.name} 👋</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className={`text-xs ${sub}`}>Bienvenue, {wallet.name} 👋</p>
+              <span className="px-2 py-0.5 text-xs font-bold bg-yellow-500/20 text-yellow-400 rounded-full flex items-center gap-1 border border-yellow-500/30">
+                <Globe size={10} /> {NETWORK_CONFIG.name}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={toggle} className={`w-9 h-9 rounded-full flex items-center justify-center border ${dark ? 'bg-[#1A2A4A] border-[#2A3A5A]' : 'bg-white border-gray-200'}`}>

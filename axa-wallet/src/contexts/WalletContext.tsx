@@ -10,6 +10,18 @@ import { verifyBlockchainTransaction, sendVerifiedAXETransfer } from '../lib/blo
 // AXE Token Contract Address on BNB Chain (Madagascar)
 const AXE_TOKEN_ADDRESS = '0xc8d07b5c2403efFa58aDCCC23f8D4217e94F11Fa'
 
+// 🌐 RÉSEAU CONFIGURATION
+export const NETWORK_CONFIG = {
+  name: 'Binance Smart Chain (BSC)',
+  chainId: 56,
+  rpcUrl: 'https://bsc-dataseed1.binance.org:443',
+  blockExplorer: 'https://bscscan.com',
+  supportedTokens: ['AXE', 'USDT'],
+  nativeCurrency: 'BNB',
+}
+
+export const SUPPORTED_CURRENCIES = ['AXE', 'USDT']
+
 export const RATES = {
   AXE_ARIARY: 1000,
   AXE_USDT: 0.045,

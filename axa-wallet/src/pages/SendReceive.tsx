@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 // @ts-ignore
 import { QRCodeSVG as QRCode } from 'qrcode.react'
-import { useWallet, formatAriary, formatNumber, RATES } from '../contexts/WalletContext'
+import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
 import { useTheme } from '../contexts/ThemeContext'
 import AppLayout from '../components/AppLayout'
-import { ArrowUpRight, ArrowDownLeft, Copy, CheckCircle, Clock, AlertCircle, QrCode } from 'lucide-react'
+import { ArrowUpRight, ArrowDownLeft, Copy, CheckCircle, Clock, AlertCircle, QrCode, Globe, Info } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function SendReceive({ initialTab }: { initialTab?: 'depot' | 'retrait' }) {
@@ -113,6 +113,15 @@ export default function SendReceive({ initialTab }: { initialTab?: 'depot' | 're
         <h1 className="text-xl font-bold mb-1">Dépôt & Retrait</h1>
         <p className={`text-xs ${sub} mb-5`}>Choisissez la devise et l'action</p>
 
+        {/* Info BSC */}
+        <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-2xl p-3 mb-5 flex gap-2">
+          <Info size={14} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-cyan-400">Réseau: {NETWORK_CONFIG.name}</p>
+            <p className={`text-xs ${sub}`}>Seuls <strong>AXE</strong> et <strong>USDT</strong> sont supportés sur BSC</p>
+          </div>
+        </div>
+
         {/* Sélecteur de devise */}
         <div className={`flex rounded-2xl overflow-hidden border mb-5 gap-2 ${card}`}>
           <button onClick={() => setDevise('axe')}
@@ -208,14 +217,14 @@ export default function SendReceive({ initialTab }: { initialTab?: 'depot' | 're
                 <h2 className="text-lg font-bold mb-3 flex items-center gap-2"><QrCode size={18} className="text-blue-500" /> Recevoir directement</h2>
                 
                 <div className={`rounded-2xl p-4 border space-y-3 ${card}`}>
-                  <p className={`text-xs ${sub}`}>Partagez votre adresse unique pour recevoir du USDT/AXE d'autres portefeuilles</p>
+                  <p className={`text-xs ${sub}`}>Partagez votre adresse unique pour recevoir <strong>AXE</strong> ou <strong>USDT</strong> sur {NETWORK_CONFIG.name}</p>
                   
                   <div className="flex justify-center py-4">
                     <QRCode value={wallet.wallet_address} size={200} level="H" includeMargin={true} />
                   </div>
                   
                   <div className={`rounded-xl p-3 ${dark ? 'bg-[#0A1628]' : 'bg-gray-50'}`}>
-                    <p className={`text-xs ${sub} mb-2`}>Votre adresse de portefeuille</p>
+                    <p className={`text-xs ${sub} mb-2`}>Votre adresse de portefeuille BSC</p>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-mono text-blue-400 break-all">{wallet.wallet_address}</p>
                       <button onClick={copyWalletAddress} className="text-[#3B82F6] hover:text-emerald-400 flex-shrink-0">
