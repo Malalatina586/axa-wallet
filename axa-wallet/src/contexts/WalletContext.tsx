@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
-import { sendAXE, getAXEBalance, syncBlockchainBalance } from '../lib/blockchain'
+import { sendAXE, getAXEBalance, getUSDTBalance, syncBlockchainBalance } from '../lib/blockchain'
 import { decryptPrivateKey } from '../lib/crypto'
 import { atomicTransferP2PAriary, atomicTransferP2PAXE, validateP2PTransfer } from '../lib/atomic-transactions'
 import { verifyBlockchainTransaction, sendVerifiedAXETransfer } from '../lib/blockchain-verification'
@@ -169,14 +169,18 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [session?.user?.id])
 
-  // 🔄 Polling blockchain pour sync AXE balance
+  // 🔄 Polling blockchain pour sync AXE & USDT balance
   useEffect(() => {
     if (session?.user?.id && wallet.wallet_address) {
       // Sync immédiatement au démarrage
       syncBlockchainBalance(session.user.id, wallet.wallet_address)
         .then(result => {
-          if (result.success && result.balance !== undefined) {
-            setWallet(prev => ({ ...prev, balance_axe: result.balance! }))
+          if (result.success) {
+            setWallet(prev => ({
+              ...prev,
+              balance_axe: result.balanceAXE !== undefined ? result.balanceAXE : prev.balance_axe,
+              balance_usdt: result.balanceUSDT !== undefined ? result.balanceUSDT : prev.balance_usdt,
+            }))
           }
         })
 
@@ -184,8 +188,12 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       const interval = setInterval(() => {
         syncBlockchainBalance(session.user.id, wallet.wallet_address)
           .then(result => {
-            if (result.success && result.balance !== undefined) {
-              setWallet(prev => ({ ...prev, balance_axe: result.balance! }))
+            if (result.success) {
+              setWallet(prev => ({
+                ...prev,
+                balance_axe: result.balanceAXE !== undefined ? result.balanceAXE : prev.balance_axe,
+                balance_usdt: result.balanceUSDT !== undefined ? result.balanceUSDT : prev.balance_usdt,
+              }))
             }
           })
       }, 30000)

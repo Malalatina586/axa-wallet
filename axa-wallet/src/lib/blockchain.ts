@@ -6,6 +6,10 @@ const BNB_CHAIN_RPC = 'https://bsc-dataseed1.binance.org:443'
 const AXE_CONTRACT = '0xc8d07b5c2403efFa58aDCCC23f8D4217e94F11Fa'
 const AXE_DECIMALS = 18
 
+// 📍 USDT Official on BSC Mainnet
+const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
+const USDT_DECIMALS = 6
+
 // ABI minimaliste pour ERC-20
 const ERC20_ABI = [
   'function transfer(address to, uint256 amount) public returns (bool)',
@@ -62,7 +66,21 @@ export async function getAXEBalance(address: string): Promise<number> {
     
     return parseFloat(ethers.formatUnits(balance, AXE_DECIMALS))
   } catch (err) {
-    console.error('Erreur lecture balance:', err)
+    console.error('Erreur lecture balance AXE:', err)
+    return 0
+  }
+}
+
+export async function getUSDTBalance(address: string): Promise<number> {
+  try {
+    if (!ethers.isAddress(address)) return 0
+    
+    const contract = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, provider)
+    const balance = await contract.balanceOf(address)
+    
+    return parseFloat(ethers.formatUnits(balance, USDT_DECIMALS))
+  } catch (err) {
+    console.error('Erreur lecture balance USDT:', err)
     return 0
   }
 }
@@ -71,32 +89,47 @@ export async function validateAddress(address: string): Promise<boolean> {
   return ethers.isAddress(address)
 }
 
-// 🔄 Sync blockchain balance with database
-export async function syncBlockchainBalance(userID: string, walletAddress: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+// 🔄 Sync blockchain balance with database (AXE & USDT)
+export async function syncBlockchainBalance(userID: string, walletAddress: string): Promise<{ success: boolean; balanceAXE?: number; balanceUSDT?: number; error?: string }> {
   try {
     if (!ethers.isAddress(walletAddress)) {
       return { success: false, error: 'Adresse invalide' }
     }
 
-    // 1. Récupérer balance du blockchain
-    const blockchainBalance = await getAXEBalance(walletAddress)
+    // 1. Récupérer balances du blockchain
+    const blockchainAXE = await getAXEBalance(walletAddress)
+    const blockchainUSDT = await getUSDTBalance(walletAddress)
 
-    // 2. Récupérer balance en DB
+    // 2. Récupérer balances en DB
     const { data: userData, error: fetchError } = await supabase
       .from('users')
-      .select('balance_axe')
+      .select('balance_axe, balance_usdt')
       .eq('id', userID)
       .single()
 
     if (fetchError) return { success: false, error: 'Erreur lecture DB' }
 
-    const dbBalance = userData?.balance_axe || 0
+    const dbAXE = userData?.balance_axe || 0
+    const dbUSDT = userData?.balance_usdt || 0
 
-    // 3. Si différent, mettre à jour la DB
-    if (Math.abs(blockchainBalance - dbBalance) > 0.0001) {
+    // 3. Mettre à jour si différent
+    let updated = false
+    const updates: any = {}
+
+    if (Math.abs(blockchainAXE - dbAXE) > 0.0001) {
+      updates.balance_axe = blockchainAXE
+      updated = true
+    }
+
+    if (Math.abs(blockchainUSDT - dbUSDT) > 0.0001) {
+      updates.balance_usdt = blockchainUSDT
+      updated = true
+    }
+
+    if (updated) {
       const { error: updateError } = await supabase
         .from('users')
-        .update({ balance_axe: blockchainBalance })
+        .update(updates)
         .eq('id', userID)
 
       if (updateError) {
@@ -104,11 +137,15 @@ export async function syncBlockchainBalance(userID: string, walletAddress: strin
         return { success: false, error: 'Erreur mise à jour' }
       }
 
-      console.log(`✅ Balance synced: ${dbBalance} → ${blockchainBalance} AXE`)
-      return { success: true, balance: blockchainBalance }
+      if (updates.balance_axe !== undefined) {
+        console.log(`✅ AXE synced: ${dbAXE} → ${blockchainAXE}`)
+      }
+      if (updates.balance_usdt !== undefined) {
+        console.log(`✅ USDT synced: ${dbUSDT} → ${blockchainUSDT}`)
+      }
     }
 
-    return { success: true, balance: blockchainBalance }
+    return { success: true, balanceAXE: blockchainAXE, balanceUSDT: blockchainUSDT }
   } catch (err: any) {
     console.error('❌ Sync blockchain error:', err)
     return { success: false, error: err.message }
