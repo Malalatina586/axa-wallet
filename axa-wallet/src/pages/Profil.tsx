@@ -168,8 +168,8 @@ export default function ProfilPage() {
 
       {/* Info Modal */}
       {activeSection === 'info' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-          <div className={`w-full rounded-t-3xl p-6 ${card} border border-b-0 animate-in slide-in-from-bottom`}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className={`w-full max-w-sm rounded-t-3xl p-6 ${card} border border-b-0 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold">Informations du Profil</h2>
               <button onClick={() => setActiveSection(null)}>
@@ -197,8 +197,8 @@ export default function ProfilPage() {
 
       {/* Security Modal */}
       {activeSection === 'security' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end overflow-y-auto">
-          <div className={`w-full rounded-t-3xl p-6 ${card} border border-b-0 my-auto`}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className={`w-full max-w-sm rounded-t-3xl p-6 ${card} border border-b-0 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <Shield size={20} className="text-blue-400" />
