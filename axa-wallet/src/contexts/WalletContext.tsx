@@ -309,18 +309,36 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  // Helper: Get fee percentage from config
+  async function getFeePercentage(): Promise<number> {
+    try {
+      const { data } = await supabase
+        .from('config')
+        .select('fee_percentage')
+        .eq('id', 1)
+        .single()
+      return data?.fee_percentage || 1
+    } catch (err) {
+      console.warn('⚠️ Could not fetch fee percentage, using default 1%')
+      return 1
+    }
+  }
+
   async function sendP2PAriary(recipientUID: string, montantAriary: number) {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
     try {
-      // 🔐 Validate sender and recipient
-      const validation = await validateP2PTransfer(session.user.id, recipientUID, montantAriary, 'ariary')
+      // Get fee percentage from config
+      const feePercentage = await getFeePercentage()
+
+      // 🔐 Validate sender and recipient (includes AXE fee check)
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, montantAriary, 'ariary', feePercentage)
       if (!validation.valid) {
         return { error: validation.error || 'Validation échouée' }
       }
 
       // 🔄 Call atomic RPC function - ALL-OR-NOTHING transaction
-      const result = await atomicTransferP2PAriary(session.user.id, recipientUID, montantAriary)
+      const result = await atomicTransferP2PAriary(session.user.id, recipientUID, montantAriary, feePercentage)
       
       if (!result.success || result.error) {
         return { error: result.error || 'Transfert échoué' }
@@ -333,7 +351,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       // Refresh full wallet to get correct balances from DB
       await refreshWallet()
 
-      return { success: true }
+      return { success: true, fee: validation.fee }
     } catch (err: any) {
       console.error('❌ P2P Ariary transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }
@@ -344,8 +362,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
     try {
-      // 🔐 Validate sender and recipient
-      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountAXE, 'axe')
+      // Get fee percentage from config
+      const feePercentage = await getFeePercentage()
+
+      // 🔐 Validate sender and recipient (includes AXE fee check)
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountAXE, 'axe', feePercentage)
       if (!validation.valid) {
         return { error: validation.error || 'Validation échouée' }
       }
@@ -405,7 +426,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: 'Transaction hash not returned from blockchain' }
       }
 
-      const dbResult = await atomicTransferP2PAXE(session.user.id, recipientUID, amountAXE, txHash)
+      const dbResult = await atomicTransferP2PAXE(session.user.id, recipientUID, amountAXE, txHash, feePercentage)
 
       if (!dbResult.success || dbResult.error) {
         // Blockchain succeeded but DB failed - critical error!
@@ -414,10 +435,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // ✅ Blockchain + DB both succeeded
-      setWallet(prev => ({ ...prev, balance_axe: prev.balance_axe - amountAXE }))
+      setWallet(prev => ({ ...prev, balance_axe: prev.balance_axe - amountAXE - (validation.fee || 0) }))
       await refreshWallet()
 
-      return { txHash }
+      return { txHash, fee: validation.fee }
     } catch (err: any) {
       console.error('❌ P2P AXE transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }
@@ -428,8 +449,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     if (!session?.user?.id) return { error: 'Non connecté' }
     
     try {
-      // 🔐 Validate sender and recipient
-      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountUSDT, 'usdt')
+      // Get fee percentage from config
+      const feePercentage = await getFeePercentage()
+
+      // 🔐 Validate sender and recipient (includes AXE fee check)
+      const validation = await validateP2PTransfer(session.user.id, recipientUID, amountUSDT, 'usdt', feePercentage)
       if (!validation.valid) {
         return { error: validation.error || 'Validation échouée' }
       }
@@ -493,7 +517,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         return { error: 'Transaction hash not returned from blockchain' }
       }
 
-      const dbResult = await atomicTransferP2PUSDT(session.user.id, recipientUID, amountUSDT, txHash)
+      const dbResult = await atomicTransferP2PUSDT(session.user.id, recipientUID, amountUSDT, txHash, feePercentage)
 
       if (!dbResult.success || dbResult.error) {
         console.warn('⚠️ CRITICAL: Blockchain TX succeeded but DB update failed!', { txHash, error: dbResult.error })
@@ -504,7 +528,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       setWallet(prev => ({ ...prev, balance_usdt: prev.balance_usdt - amountUSDT }))
       await refreshWallet()
 
-      return { txHash }
+      return { txHash, fee: validation.fee }
     } catch (err: any) {
       console.error('❌ P2P USDT transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }

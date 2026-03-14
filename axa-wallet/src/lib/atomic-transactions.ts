@@ -11,13 +11,15 @@ import { supabase } from './supabase'
 export async function atomicTransferP2PAriary(
   senderID: string,
   recipientID: string,
-  amountAriary: number
+  amountAriary: number,
+  feePercentage: number = 1
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_ariary', {
       sender_id: senderID,
       recipient_id: recipientID,
       amount: amountAriary,
+      fee_percentage: feePercentage,
     })
 
     if (error) {
@@ -47,7 +49,8 @@ export async function atomicTransferP2PAXE(
   senderID: string,
   recipientID: string,
   amountAXE: number,
-  txHash: string
+  txHash: string,
+  feePercentage: number = 1
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_axe', {
@@ -55,6 +58,7 @@ export async function atomicTransferP2PAXE(
       recipient_id: recipientID,
       amount: amountAXE,
       tx_hash: txHash,
+      fee_percentage: feePercentage,
     })
 
     if (error) {
@@ -84,7 +88,8 @@ export async function atomicTransferP2PUSDT(
   senderID: string,
   recipientID: string,
   amountUSDT: number,
-  txHash: string
+  txHash: string,
+  feePercentage: number = 1
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { data, error } = await supabase.rpc('transfer_p2p_usdt', {
@@ -92,6 +97,7 @@ export async function atomicTransferP2PUSDT(
       recipient_id: recipientID,
       amount: amountUSDT,
       tx_hash: txHash,
+      fee_percentage: feePercentage,
     })
 
     if (error) {
@@ -120,8 +126,9 @@ export async function validateP2PTransfer(
   senderID: string,
   recipientID: string,
   amount: number,
-  currency: 'ariary' | 'axe' | 'usdt'
-): Promise<{ valid: boolean; error?: string }> {
+  currency: 'ariary' | 'axe' | 'usdt',
+  feePercentage: number = 1
+): Promise<{ valid: boolean; error?: string; totalCost?: number; fee?: number }> {
   try {
     // Check sender and recipient exist
     const { data: sender } = await supabase
@@ -145,17 +152,44 @@ export async function validateP2PTransfer(
     
     const { data: senderData } = await supabase
       .from('users')
-      .select(balanceField)
+      .select('balance_axe, balance_ariary, balance_usdt')
       .eq('id', senderID)
       .single()
 
     const balance = ((senderData?.[balanceField as keyof typeof senderData] as unknown) as number) || 0
+    const axeBalance = senderData?.balance_axe || 0
 
     if (balance < amount) {
       return { valid: false, error: `Insufficient ${currency} balance` }
     }
 
-    return { valid: true }
+    // 🔥 NEW: Check AXE fee requirement
+    let feeInAXE = 0
+    
+    if (currency === 'ariary') {
+      // Fee for Ariary: amount * fee% / 100 / 1000 (convert to AXE)
+      feeInAXE = (amount * feePercentage / 100) / 1000
+    } else if (currency === 'axe') {
+      // Fee for AXE: amount * fee%
+      feeInAXE = amount * feePercentage / 100
+    } else if (currency === 'usdt') {
+      // Fee for USDT: amount * fee% * exchange rate (0.045)
+      feeInAXE = amount * feePercentage / 100 * 0.045
+    }
+
+    if (axeBalance < feeInAXE) {
+      return { 
+        valid: false, 
+        error: `❌ Insufficient AXE for transaction fee (need ${feeInAXE.toFixed(8)} AXE, have ${axeBalance.toFixed(8)} AXE)`,
+        fee: feeInAXE
+      }
+    }
+
+    return { 
+      valid: true,
+      totalCost: currency === 'axe' ? amount + feeInAXE : amount,
+      fee: feeInAXE
+    }
   } catch (err) {
     console.error('❌ Validation error:', err)
     return { valid: false, error: 'Validation failed' }
