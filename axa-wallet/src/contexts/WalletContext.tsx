@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
-import { sendAXE, getAXEBalance } from '../lib/blockchain'
+import { sendAXE, getAXEBalance, syncBlockchainBalance } from '../lib/blockchain'
 import { decryptPrivateKey } from '../lib/crypto'
 import { atomicTransferP2PAriary, atomicTransferP2PAXE, validateP2PTransfer } from '../lib/atomic-transactions'
 import { verifyBlockchainTransaction, sendVerifiedAXETransfer } from '../lib/blockchain-verification'
@@ -156,6 +156,32 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
     }
   }, [session?.user?.id])
+
+  // 🔄 Polling blockchain pour sync AXE balance
+  useEffect(() => {
+    if (session?.user?.id && wallet.wallet_address) {
+      // Sync immédiatement au démarrage
+      syncBlockchainBalance(session.user.id, wallet.wallet_address)
+        .then(result => {
+          if (result.success && result.balance !== undefined) {
+            setWallet(prev => ({ ...prev, balance_axe: result.balance! }))
+          }
+        })
+
+      // Puis toutes les 30 secondes
+      const interval = setInterval(() => {
+        syncBlockchainBalance(session.user.id, wallet.wallet_address)
+          .then(result => {
+            if (result.success && result.balance !== undefined) {
+              setWallet(prev => ({ ...prev, balance_axe: result.balance! }))
+            }
+          })
+      }, 30000)
+
+      return () => clearInterval(interval)
+    }
+  }, [session?.user?.id, wallet.wallet_address])
+
 
   async function submitDepot(montant: number, mvola: string) {
     if (!session?.user?.id) return { error: 'Non connecté' }

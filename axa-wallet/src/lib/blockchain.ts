@@ -1,4 +1,5 @@
 import { ethers } from 'ethers'
+import { supabase } from './supabase'
 
 // Configuration BNB Chain
 const BNB_CHAIN_RPC = 'https://bsc-dataseed1.binance.org:443'
@@ -69,3 +70,48 @@ export async function getAXEBalance(address: string): Promise<number> {
 export async function validateAddress(address: string): Promise<boolean> {
   return ethers.isAddress(address)
 }
+
+// 🔄 Sync blockchain balance with database
+export async function syncBlockchainBalance(userID: string, walletAddress: string): Promise<{ success: boolean; balance?: number; error?: string }> {
+  try {
+    if (!ethers.isAddress(walletAddress)) {
+      return { success: false, error: 'Adresse invalide' }
+    }
+
+    // 1. Récupérer balance du blockchain
+    const blockchainBalance = await getAXEBalance(walletAddress)
+
+    // 2. Récupérer balance en DB
+    const { data: userData, error: fetchError } = await supabase
+      .from('users')
+      .select('balance_axe')
+      .eq('id', userID)
+      .single()
+
+    if (fetchError) return { success: false, error: 'Erreur lecture DB' }
+
+    const dbBalance = userData?.balance_axe || 0
+
+    // 3. Si différent, mettre à jour la DB
+    if (Math.abs(blockchainBalance - dbBalance) > 0.0001) {
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ balance_axe: blockchainBalance })
+        .eq('id', userID)
+
+      if (updateError) {
+        console.error('❌ Erreur sync blockchain:', updateError)
+        return { success: false, error: 'Erreur mise à jour' }
+      }
+
+      console.log(`✅ Balance synced: ${dbBalance} → ${blockchainBalance} AXE`)
+      return { success: true, balance: blockchainBalance }
+    }
+
+    return { success: true, balance: blockchainBalance }
+  } catch (err: any) {
+    console.error('❌ Sync blockchain error:', err)
+    return { success: false, error: err.message }
+  }
+}
+
