@@ -270,6 +270,51 @@ tr:hover td{background:rgba(255,255,255,0.02);}
         <div class="stat-change">En AXE</div>
       </div>
     </div>
+
+    <!-- 💰 WIDGET DÉTAILLÉ FRAIS -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:28px;">
+      <!-- Frais Par Période -->
+      <div class="stat-card" style="background:var(--card);padding:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💰 Frais Collectés</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(34,197,94,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Aujourd'hui</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green);font-family:var(--mono);" id="fees-today">-- AXE</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(59,130,246,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Ce mois</div>
+            <div style="font-size:14px;font-weight:700;color:var(--blue);font-family:var(--mono);" id="fees-month">-- AXE</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(168,85,247,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Tous les temps</div>
+            <div style="font-size:14px;font-weight:700;color:var(--purple);font-family:var(--mono);" id="fees-alltime">-- AXE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frais Par Type -->
+      <div class="stat-card" style="background:var(--card);padding:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Frais par Type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;">
+          <div style="padding:10px;background:rgba(249,115,22,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P AXE</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-axe">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(6,182,212,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P USDT</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-usdt">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(239,68,68,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P Ariary</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-ariary">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(168,85,247,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">Autres</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-other">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- DÉPÔTS -->
@@ -800,6 +845,52 @@ async function loadDashboard() {
   await updateBadges()
 }
 
+async function loadFeesStats() {
+  try {
+    // Récupérer tous les frais collectés
+    const { data: allFees } = await sb.from('fees_collected').select('amount_axe, transaction_type, created_at')
+    
+    if (!allFees || allFees.length === 0) {
+      return { totalAllTime: 0, totalToday: 0, totalThisMonth: 0, byType: {} }
+    }
+
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    let totalAllTime = 0
+    let totalToday = 0
+    let totalThisMonth = 0
+    const byType = {}
+
+    allFees.forEach(fee => {
+      const amount = fee.amount_axe || 0
+      totalAllTime += amount
+
+      // Frais d'aujourd'hui
+      const feeDate = new Date(fee.created_at)
+      const feeDay = new Date(feeDate.getFullYear(), feeDate.getMonth(), feeDate.getDate())
+      if (feeDay.getTime() === today.getTime()) {
+        totalToday += amount
+      }
+
+      // Frais ce mois
+      if (feeDate >= startOfMonth && feeDate < now) {
+        totalThisMonth += amount
+      }
+
+      // Par type
+      const type = fee.transaction_type || 'unknown'
+      byType[type] = (byType[type] || 0) + amount
+    })
+
+    return { totalAllTime, totalToday, totalThisMonth, byType }
+  } catch (err) {
+    console.error('Erreur chargement stats frais:', err)
+    return { totalAllTime: 0, totalToday: 0, totalThisMonth: 0, byType: {} }
+  }
+}
+
 async function loadDashboardStats() {
   try {
     // Config pour les taux de change
@@ -830,8 +921,12 @@ async function loadDashboardStats() {
     const totalRetraits = allRetraitsData?.length || 0
     const totalRetraitsFees = (allRetraitsData || []).reduce((sum, r) => sum + (r.montant_ariary || 0) * (feeRetrait / 100), 0) / rateAxeAriary
     
-    // Total des frais en AXE
-    const totalFees = totalDepotsFees + totalRetraitsFees
+    // 🔥 FRAIS P2P ET AUTRES (NEW)
+    const feesStats = await loadFeesStats()
+    const totalP2PFees = feesStats.totalAllTime || 0
+    
+    // Total des frais en AXE (dépôt + retrait + P2P)
+    const totalFees = totalDepotsFees + totalRetraitsFees + totalP2PFees
     
     // Utilisateurs actifs AUJOURD'HUI
     const today = new Date()
@@ -857,6 +952,27 @@ async function loadDashboardStats() {
     document.getElementById('stat-usdt-circulation').textContent = totalUSDT.toFixed(2)
     document.getElementById('stat-ariary-circulation').textContent = (totalAriary / 1000000).toFixed(1)
     document.getElementById('active-users-label').textContent = activeUsersCount + ' utilisateurs'
+    
+    // 🔥 Afficher les frais détaillés
+    if (document.getElementById('fees-today')) {
+      document.getElementById('fees-today').textContent = feesStats.totalToday.toFixed(8) + ' AXE'
+      document.getElementById('fees-month').textContent = feesStats.totalThisMonth.toFixed(8) + ' AXE'
+      document.getElementById('fees-alltime').textContent = feesStats.totalAllTime.toFixed(8) + ' AXE'
+      
+      // Par type
+      const byType = feesStats.byType || {}
+      document.getElementById('fees-type-p2p-axe').textContent = (byType['p2p_axe'] || 0).toFixed(8) + ' AXE'
+      document.getElementById('fees-type-p2p-usdt').textContent = (byType['p2p_usdt'] || 0).toFixed(8) + ' AXE'
+      document.getElementById('fees-type-p2p-ariary').textContent = (byType['p2p_ariary'] || 0).toFixed(8) + ' AXE'
+      
+      // Autres (conversion, retrait, depot)
+      const otherTypes = ['conversion', 'retrait', 'depot']
+      let otherTotal = 0
+      otherTypes.forEach(type => {
+        otherTotal += byType[type] || 0
+      })
+      document.getElementById('fees-type-other').textContent = otherTotal.toFixed(8) + ' AXE'
+    }
     
     // Load graphiques
     await loadLast7DaysChart(rateAxeAriary, rateAxeUsdt)
