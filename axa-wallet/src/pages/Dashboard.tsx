@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logoAxeWallet from '../assets/logo-axe-wallet.png'
 import { useWallet, formatAriary, formatNumber, RATES, NETWORK_CONFIG } from '../contexts/WalletContext'
@@ -7,8 +7,10 @@ import AppLayout from '../components/AppLayout'
 import { LineChart, Line, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 import {
   Send, Download, ArrowLeftRight, Layers, TrendingUp, TrendingDown,
-  ArrowDownLeft, ArrowUpRight, RefreshCw, Wallet, Users, Bell, X, Sun, Moon, Globe
+  ArrowDownLeft, ArrowUpRight, RefreshCw, Wallet, Users, Bell, X, Sun, Moon, Globe, Gift
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload?.length) {
@@ -23,12 +25,66 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export default function Dashboard() {
   const { wallet, transactions, priceHistory, loading, refreshWallet } = useWallet()
+  const { user } = useAuth()
   const { dark, toggle } = useTheme()
   const navigate = useNavigate()
   const [showNotif, setShowNotif] = useState(false)
+  const [stakingRewards, setStakingRewards] = useState(0)
+  const [stakingAPY, setStakingAPY] = useState(12)
   const [notifications, setNotifications] = useState([
     { id: '1', msg: 'Bienvenue sur AXA Wallet !', time: "Maintenant", read: false },
   ])
+
+  // Calculate staking rewards in real-time
+  useEffect(() => {
+    if (!user || wallet.staked_axe === 0) {
+      setStakingRewards(0)
+      return
+    }
+
+    const calculateStakingRewards = async () => {
+      try {
+        // Get staking config
+        const { data: config } = await supabase.from('staking_config').select('*').eq('id', 1).single()
+        if (config) {
+          setStakingAPY(config.apy || 12)
+        }
+
+        // Get active staking positions
+        const { data: positions } = await supabase
+          .from('staking_positions')
+          .select('*')
+          .eq('user_id', user.id)
+          .is('ended_at', null)
+
+        if (!positions || positions.length === 0) {
+          setStakingRewards(0)
+          return
+        }
+
+        // Calculate total accumulated rewards
+        let totalRewards = 0
+        const now = Date.now()
+        const apy = config?.apy || 12
+
+        positions.forEach((pos: any) => {
+          const startTime = new Date(pos.started_at).getTime()
+          const hoursElapsed = (now - startTime) / (1000 * 60 * 60)
+          const hourlyReward = (pos.amount * apy / 365 / 24) / 100
+          const accumulated = hourlyReward * hoursElapsed - (pos.claimed_rewards || 0)
+          totalRewards += Math.max(0, accumulated)
+        })
+
+        setStakingRewards(totalRewards)
+      } catch (err) {
+        console.error('Erreur calcul staking rewards:', err)
+      }
+    }
+
+    calculateStakingRewards()
+    const interval = setInterval(calculateStakingRewards, 1000)
+    return () => clearInterval(interval)
+  }, [user, wallet.staked_axe])
 
   const currentPrice = priceHistory[priceHistory.length - 1]?.price || 0
   const prevPrice = priceHistory[priceHistory.length - 2]?.price || 0
@@ -193,6 +249,25 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+
+        {/* Staking Rewards Card */}
+        {wallet.staked_axe > 0 && (
+          <div className={`rounded-2xl p-4 mb-6 border bg-emerald-500/10 border-emerald-500/30`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Gift size={14} className="text-emerald-400" />
+                  <p className={`text-xs ${sub}`}>Récompenses Staking</p>
+                </div>
+                <p className="text-2xl font-bold text-emerald-400">{formatNumber(stakingRewards)} AXE</p>
+                <p className={`text-xs ${sub} mt-1`}>APY {stakingAPY}% • Flexible (retrait anytime)</p>
+              </div>
+              <button onClick={() => navigate('/staking')} className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors">
+                Gérer
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Transactions */}
         <div className="flex items-center justify-between mb-3">
