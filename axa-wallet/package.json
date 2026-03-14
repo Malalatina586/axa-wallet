@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "chmod +x node_modules/.bin/tsc || true",
     "build": "npx tsc && vite build",
     "preview": "vite preview"
   },
