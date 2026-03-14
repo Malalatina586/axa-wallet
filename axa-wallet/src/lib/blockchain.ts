@@ -152,3 +152,59 @@ export async function syncBlockchainBalance(userID: string, walletAddress: strin
   }
 }
 
+/**
+ * 🔥 Collect and send transaction fees to admin wallet
+ * Called after successful P2P transactions
+ * @param userPrivateKey - User's encrypted private key (will be decrypted by caller)
+ * @param feeAmountAXE - Fee amount to send
+ * @param adminWalletAddress - Admin wallet address to receive fees (0x...)
+ * @returns Transaction hash if successful
+ */
+export async function sendFeesToAdmin(
+  userPrivateKey: string,
+  feeAmountAXE: number,
+  adminWalletAddress: string
+): Promise<{ txHash: string | null; error?: string }> {
+  try {
+    // Validate admin address
+    if (!adminWalletAddress || !ethers.isAddress(adminWalletAddress)) {
+      return { txHash: null, error: 'Admin wallet address not configured or invalid' }
+    }
+
+    if (feeAmountAXE <= 0) {
+      return { txHash: null, error: 'Fee amount must be positive' }
+    }
+
+    // Create wallet from private key
+    const wallet = new ethers.Wallet(userPrivateKey, provider)
+    
+    // Create contract instance
+    const contract = new ethers.Contract(AXE_CONTRACT, ERC20_ABI, wallet)
+    
+    // Convert fee amount to raw units (with decimals)
+    const feeAmount = ethers.parseUnits(feeAmountAXE.toString(), AXE_DECIMALS)
+    
+    // Estimate gas
+    const gasEstimate = await contract.transfer.estimateGas(adminWalletAddress, feeAmount)
+    
+    // Send fee transaction
+    const tx = await contract.transfer(adminWalletAddress, feeAmount, {
+      gasLimit: (gasEstimate * 120n) / 100n, // +20% for safety
+    })
+    
+    // Wait for confirmation
+    const receipt = await tx.wait()
+    
+    if (receipt?.status === 1) {
+      console.log('✅ Fees sent to admin:', { txHash: tx.hash, amount: feeAmountAXE })
+      return { txHash: tx.hash }
+    } else {
+      console.error('❌ Fee transaction failed')
+      return { txHash: null, error: 'Fee transaction failed on blockchain' }
+    }
+  } catch (err: any) {
+    console.error('❌ Error sending fees to admin:', err)
+    return { txHash: null, error: err.message || 'Failed to send fees' }
+  }
+}
+

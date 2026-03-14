@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { ethers } from 'ethers'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
-import { sendAXE, getAXEBalance, getUSDTBalance, syncBlockchainBalance } from '../lib/blockchain'
+import { sendAXE, getAXEBalance, getUSDTBalance, syncBlockchainBalance, sendFeesToAdmin } from '../lib/blockchain'
 import { decryptPrivateKey } from '../lib/crypto'
 import { atomicTransferP2PAriary, atomicTransferP2PAXE, atomicTransferP2PUSDT, validateP2PTransfer } from '../lib/atomic-transactions'
 import { verifyBlockchainTransaction, sendVerifiedAXETransfer, sendVerifiedUSDTTransfer } from '../lib/blockchain-verification'
@@ -435,10 +435,37 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // ✅ Blockchain + DB both succeeded
-      setWallet(prev => ({ ...prev, balance_axe: prev.balance_axe - amountAXE - (validation.fee || 0) }))
+      const feeAmount = validation.fee || 0
+      
+      // 🔥 Send fees to admin wallet
+      if (feeAmount > 0) {
+        try {
+          const { data: configData } = await supabase
+            .from('config')
+            .select('wallet_admin_axe')
+            .eq('id', 1)
+            .single()
+          
+          const adminAddress = configData?.wallet_admin_axe
+          if (adminAddress) {
+            // Send fees to admin (non-blocking - don't wait)
+            sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)
+              .then(result => {
+                if (result.txHash) {
+                  console.log('✅ Fees sent to admin:', { txHash: result.txHash, amount: feeAmount })
+                }
+              })
+              .catch(err => console.warn('⚠️ Fee collection ongoing...', err))
+          }
+        } catch (err) {
+          console.warn('⚠️ Could not send fees, but transaction succeeded')
+        }
+      }
+
+      setWallet(prev => ({ ...prev, balance_axe: prev.balance_axe - amountAXE - feeAmount }))
       await refreshWallet()
 
-      return { txHash, fee: validation.fee }
+      return { txHash, fee: feeAmount }
     } catch (err: any) {
       console.error('❌ P2P AXE transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }
@@ -525,10 +552,37 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // ✅ Blockchain + DB both succeeded
+      const feeAmount = validation.fee || 0
+      
+      // 🔥 Send fees to admin wallet (in AXE)
+      if (feeAmount > 0) {
+        try {
+          const { data: configData } = await supabase
+            .from('config')
+            .select('wallet_admin_axe')
+            .eq('id', 1)
+            .single()
+          
+          const adminAddress = configData?.wallet_admin_axe
+          if (adminAddress) {
+            // Send fees to admin (non-blocking - don't wait)
+            sendFeesToAdmin(decryptedKey, feeAmount, adminAddress)
+              .then(result => {
+                if (result.txHash) {
+                  console.log('✅ Fees sent to admin:', { txHash: result.txHash, amount: feeAmount })
+                }
+              })
+              .catch(err => console.warn('⚠️ Fee collection ongoing...', err))
+          }
+        } catch (err) {
+          console.warn('⚠️ Could not send fees, but transaction succeeded')
+        }
+      }
+
       setWallet(prev => ({ ...prev, balance_usdt: prev.balance_usdt - amountUSDT }))
       await refreshWallet()
 
-      return { txHash, fee: validation.fee }
+      return { txHash, fee: feeAmount }
     } catch (err: any) {
       console.error('❌ P2P USDT transfer error:', err)
       return { error: err.message || 'Erreur lors du transfert' }
