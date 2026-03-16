@@ -1,0 +1,47 @@
+/* Design Tokens - Couleurs et variables globales */
+:root {
+  /* Palette de couleurs */
+  --bg: #070d1a;
+  --surface: #0d1829;
+  --card: #111f35;
+  --border: #1a2d4a;
+  
+  /* Accent Colors */
+  --gold: #f0b429;
+  --gold2: #ffd166;
+  --blue: #3b82f6;
+  --green: #22c55e;
+  --red: #ef4444;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  
+  /* Text Colors */
+  --text: #e8edf5;
+  --sub: #6b8aad;
+  
+  /* Typography */
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 28px;
+  --spacing-4xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s;
+  --transition-normal: 0.2s;
+  --transition-slow: 0.3s;
+}

@@ -1,0 +1,3365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AXA Wallet — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#070d1a;--surface:#0d1829;--card:#111f35;--border:#1a2d4a;
+  --gold:#f0b429;--gold2:#ffd166;--blue:#3b82f6;--green:#22c55e;
+  --red:#ef4444;--purple:#a855f7;--cyan:#06b6d4;
+  --text:#e8edf5;--sub:#6b8aad;--mono:'IBM Plex Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;}
+
+/* Sidebar */
+.sidebar{width:240px;min-height:100vh;background:var(--surRECIPIENT UID LOOKUP EST CASSÉface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;z-index:100;}
+.logo{padding:0 24px 24px;border-bottom:1px solid var(--border);}
+.logo-title{font-size:20px;font-weight:800;color:var(--gold);letter-spacing:-0.5px;}
+.logo-sub{font-size:11px;color:var(--sub);font-family:var(--mono);margin-top:2px;}
+.nav{flex:1;padding:16px 12px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:var(--sub);transition:all 0.15s;margin-bottom:4px;border:1px solid transparent;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:linear-gradient(135deg,rgba(240,180,41,0.15),rgba(240,180,41,0.05));color:var(--gold);border-color:rgba(240,180,41,0.2);}
+.nav-icon{width:18px;height:18px;flex-shrink:0;}
+.badge{margin-left:auto;background:var(--red);color:white;font-size:10px;padding:2px 6px;border-radius:20px;font-family:var(--mono);}
+.sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);}
+.admin-info{display:flex;align-items:center;gap:10px;}
+.admin-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--gold),#e07b00);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#000;}
+.admin-name{font-size:13px;font-weight:700;}
+.admin-role{font-size:10px;color:var(--sub);font-family:var(--mono);}
+
+/* Main */
+.main{margin-left:240px;flex:1;padding:32px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* Header */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.page-title{font-size:24px;font-weight:800;}
+.page-sub{font-size:13px;color:var(--sub);margin-top:2px;}
+.header-actions{display:flex;gap:10px;}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:0.06;transform:translate(20px,-20px);}
+.stat-card.gold::before{background:var(--gold);}
+.stat-card.green::before{background:var(--green);}
+.stat-card.blue::before{background:var(--blue);}
+.stat-card.purple::before{background:var(--purple);}
+.stat-card.cyan::before{background:var(--cyan);}
+.stat-card.red::before{background:var(--red);}
+.stat-label{font-size:11px;color:var(--sub);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+.stat-value{font-size:26px;font-weight:800;font-family:var(--mono);}
+.stat-value.gold{color:var(--gold);}
+.stat-value.green{color:var(--green);}
+.stat-value.blue{color:var(--blue);}
+.stat-value.purple{color:var(--purple);}
+.stat-value.cyan{color:var(--cyan);}
+.stat-change{font-size:11px;color:var(--sub);margin-top:6px;font-family:var(--mono);}
+.stat-change span{color:var(--green);}
+
+/* Table */
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:14px;font-weight:700;}
+.table-filters{display:flex;gap:8px;}
+.filter-btn{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--sub);font-family:var(--sans);transition:all 0.15s;}
+.filter-btn.active{background:var(--gold);color:#000;border-color:var(--gold);}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 20px;font-size:11px;font-weight:700;color:var(--sub);text-align:left;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+td{padding:14px 20px;font-size:13px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+.mono{font-family:var(--mono);}
+
+/* Status badges */
+.status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:var(--mono);}
+.status::before{content:'';width:6px;height:6px;border-radius:50%;}
+.status.pending{background:rgba(240,180,41,0.15);color:var(--gold);}
+.status.pending::before{background:var(--gold);}
+.status.approved{background:rgba(34,197,94,0.15);color:var(--green);}
+.status.approved::before{background:var(--green);}
+.status.rejected{background:rgba(239,68,68,0.15);color:var(--red);}
+.status.rejected::before{background:var(--red);}
+.status.completed{background:rgba(59,130,246,0.15);color:var(--blue);}
+.status.completed::before{background:var(--blue);}
+
+/* Action buttons */
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--sans);transition:all 0.15s;display:inline-flex;align-items:center;gap:5px;}
+.btn:active{transform:scale(0.97);}
+.btn-approve{background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.btn-approve:hover{background:var(--green);color:#000;}
+.btn-reject{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.btn-reject:hover{background:var(--red);color:white;}
+.btn-view{background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
+.btn-view:hover{background:var(--blue);color:white;}
+.btn-primary{background:var(--gold);color:#000;border:1px solid var(--gold);}
+.btn-primary:hover{background:var(--gold2);}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:480px;max-width:95vw;}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:20px;}
+.modal-field{margin-bottom:16px;}
+.modal-label{font-size:11px;color:var(--sub);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+.modal-value{font-size:14px;font-weight:600;}
+.modal-value.mono{font-family:var(--mono);font-size:13px;}
+.modal-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.modal-actions .btn{flex:1;justify-content:center;padding:12px;}
+
+/* Fee highlight */
+.fee-box{background:linear-gradient(135deg,rgba(240,180,41,0.1),rgba(240,180,41,0.03));border:1px solid rgba(240,180,41,0.2);border-radius:12px;padding:14px;margin:16px 0;}
+.fee-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.fee-row:last-child{margin-bottom:0;}
+.fee-key{font-size:12px;color:var(--sub);}
+.fee-val{font-size:13px;font-weight:700;font-family:var(--mono);}
+.fee-val.gold{color:var(--gold);}
+
+/* Responsive */
+@media(max-width:900px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div id="auth-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bg); z-index:9999; display:flex; align-items:center; justify-content:center;">
+    <div style="background:var(--surface); padding:40px; border-radius:15px; border:1px solid var(--border); width:320px; text-align:center;">
+        <h2 style="margin-bottom:10px; color:var(--gold); font-size:24px;">🔐 Backoffice Admin</h2>
+        <p style="margin-bottom:30px; color:var(--sub); font-size:12px;">Accès autorisé uniquement</p>
+        <input type="email" id="admin-email" placeholder="Email" value="axa@admin.mg" style="width:100%; padding:12px; margin-bottom:12px; background:var(--card); border:1px solid var(--border); color:white; border-radius:8px; font-size:14px; font-family:var(--mono);">
+        <input type="password" id="admin-password" placeholder="Mot de passe" style="width:100%; padding:12px; margin-bottom:15px; background:var(--card); border:1px solid var(--border); color:white; border-radius:8px; font-size:14px; font-family:var(--mono);">
+        <button id="btn-login" style="width:100%; padding:12px; background:var(--gold); border:none; cursor:pointer; border-radius:8px; font-weight:700; font-size:14px;">Accéder</button>
+        <div id="login-error" style="margin-top:15px; color:var(--red); font-size:12px; display:none;"></div>
+    </div>
+</div>
+
+<!-- Modal Transaction Details -->
+<div id="transaction-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;width:500px;max-width:95vw;">
+        <div style="font-size:18px;font-weight:800;margin-bottom:20px;" id="modal-title">Détails</div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">UTILISATEUR</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-user">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">STATUT</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-status">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">DATE</div>
+                <div style="font-size:14px;font-weight:600;" id="modal-date">N/A</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ID</div>
+                <div style="font-size:12px;font-family:var(--mono);color:var(--gold);" id="modal-id">N/A</div>
+            </div>
+        </div>
+        
+        <div style="background:rgba(26,45,74,0.3);padding:16px;border-radius:12px;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                    <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">MONTANT</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--gold);" id="modal-amount">0</div>
+                </div>
+                <div>
+                    <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS</div>
+                    <div style="font-size:16px;font-weight:700;color:var(--red);" id="modal-fees">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-bottom:20px;" id="modal-extra-info"></div>
+        
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button onclick="closeModal()" style="flex:1;padding:12px;background:rgba(107,138,173,0.2);color:var(--text);border:1px solid var(--border);cursor:pointer;border-radius:8px;font-weight:700;font-family:var(--sans);">✕ Fermer</button>
+            <button id="modal-action-btn" onclick="approveTransaction()" style="flex:1;padding:12px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);cursor:pointer;border-radius:8px;font-weight:700;font-family:var(--sans);">✓ Approuver</button>
+        </div>
+    </div>
+</div>
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-title">AXE ADMIN</div>
+    <div class="logo-sub">v1.0</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item" onclick="switchPage('account-info',this)">ℹ️ Information du compte</div>
+    <div class="nav-item active" onclick="switchPage('dashboard',this)">📊 Dashboard</div>
+    <div class="nav-item" onclick="switchPage('depots',this)">📥 Dépôts <span class="badge" id="badge-depots">0</span></div>
+    <div class="nav-item" onclick="switchPage('retraits',this)">📤 Retraits <span class="badge" id="badge-retraits">0</span></div>
+    <div class="nav-item" onclick="switchPage('transactions',this)">💱 Transactions</div>
+    <div class="nav-item" onclick="switchPage('utilisateurs',this)">👥 Utilisateurs</div>
+    <div class="nav-item" onclick="switchPage('taux',this)">💹 Config Taux</div>
+    <div class="nav-item" onclick="switchPage('frais',this)">⚙️ Config Frais</div>
+    <div class="nav-item" onclick="switchPage('wallets',this)">💳 Config Wallets</div>
+    <div class="nav-item" onclick="switchPage('staking',this)">📈 Config Staking</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="admin-info">
+      <div class="admin-avatar">A</div>
+      <div>
+        <div class="admin-name">Admin</div>
+        <div class="admin-role">Administrateur</div>
+      </div>
+    </div>
+    <button onclick="logout()" style="width:100%;margin-top:16px;padding:8px 12px;background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);cursor:pointer;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--sans);transition:all 0.15s;">🚪 Déconnexion</button>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- ACCOUNT INFO -->
+  <div class="page" id="page-account-info">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Information du compte</div>
+        <div class="page-sub">Détails d'administration du système AXA Wallet</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;">
+      <!-- Profil Admin -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">👤 Profil Administrateur</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NOM D'UTILISATEUR</div>
+            <div style="font-size:14px;font-weight:600;">Admin</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">RÔLE</div>
+            <div style="font-size:14px;font-weight:600;color:var(--gold);">Administrateur Système</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ACCÈS</div>
+            <div style="font-size:14px;font-weight:600;color:var(--green);">✓ Accès complet</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Informations Système -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">⚙️ Système</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">VERSION</div>
+            <div style="font-size:14px;font-weight:600;font-family:var(--mono);">v1.0</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">STATUT</div>
+            <div style="font-size:14px;font-weight:600;color:var(--green);">✓ En ligne</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ENVIRONNEMENT</div>
+            <div style="font-size:14px;font-weight:600;font-family:var(--mono);">Production</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Droits et Permissions -->
+    <div class="stat-card" style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.2);">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--green);">✓ Permissions</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;">
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">📊 Dashboard</div>
+          <div style="color:var(--sub);font-size:11px;">Accès complet</div>
+        </div>
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">💰 Transactions</div>
+          <div style="color:var(--sub);font-size:11px;">Approbation/Rejet</div>
+        </div>
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">⚙️ Configuration</div>
+          <div style="color:var(--sub);font-size:11px;">Modification</div>
+        </div>
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">👥 Utilisateurs</div>
+          <div style="color:var(--sub);font-size:11px;">Consultation</div>
+        </div>
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">💹 Taux</div>
+          <div style="color:var(--sub);font-size:11px;">Modification</div>
+        </div>
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;border-left:3px solid var(--green);">
+          <div style="font-weight:600;margin-bottom:4px;">📈 Staking</div>
+          <div style="color:var(--sub);font-size:11px;">Configuration</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info Système Supplémentaire -->
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="stat-card" style="background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.2);">
+        <div style="font-size:12px;color:var(--blue);font-weight:600;margin-bottom:12px;">ℹ️ À Propos</div>
+        <div style="font-size:12px;color:var(--sub);line-height:1.8;">
+          <div><strong>Plateforme:</strong> AXA Wallet Admin</div>
+          <div><strong>Devise Native:</strong> AXE Token</div>
+          <div><strong>Blockchain:</strong> BSC (Binance Smart Chain)</div>
+          <div><strong>Réseau:</strong> Mainnet</div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(168,85,247,0.05);border:1px solid rgba(168,85,247,0.2);">
+        <div style="font-size:12px;color:var(--purple);font-weight:600;margin-bottom:12px;">🔐 Sécurité</div>
+        <div style="font-size:12px;color:var(--sub);line-height:1.8;">
+          <div style="color:var(--green);">✓ Authentification activée</div>
+          <div style="color:var(--green);">✓ Accès limité aux admins</div>
+          <div style="color:var(--green);">✓ Transactions auditées</div>
+          <div style="color:var(--green);">✓ Logs conservés</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Vue d'ensemble du système</div>
+      </div>
+    </div>
+    
+    <!-- Graphique et Cercle EN HAUT - INVERSÉS -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:28px;">
+      <!-- Widget rond - Membres actifs À GAUCHE -->
+      <div class="stat-card" style="background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--sub);">ACTIFS AUJOURD'HUI</div>
+        <canvas id="activeUsersChart" style="max-width:200px;max-height:200px;"></canvas>
+        <div style="font-size:12px;color:var(--sub);margin-top:12px;" id="active-users-label">-- utilisateurs</div>
+      </div>
+      
+      <!-- Graphique 7 jours À DROITE -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Transactions (7 jours)</div>
+        <canvas id="transactionsChart" style="max-height:300px;"></canvas>
+      </div>
+    </div>
+    
+    <!-- 6 Cartes EN BAS - 3 COLONNES -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat-card cyan">
+        <div class="stat-label">USDT en Circulation</div>
+        <div class="stat-value cyan" id="stat-usdt-circulation">--</div>
+        <div class="stat-change">Total USDT</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Ariary en Circulation</div>
+        <div class="stat-value red" id="stat-ariary-circulation">--</div>
+        <div class="stat-change">Total Ariary</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">AXE Circulation</div>
+        <div class="stat-value gold" id="stat-axe-circulation">--</div>
+        <div class="stat-change">Total en circulation</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Total retraits</div>
+        <div class="stat-value purple" id="stat-retraits-pending">--</div>
+        <div class="stat-change">Tous les retraits</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total dépôts</div>
+        <div class="stat-value blue" id="stat-depots-pending">--</div>
+        <div class="stat-change">Tous les dépôts</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Total de frais</div>
+        <div class="stat-value green" id="stat-total-fees">--</div>
+        <div class="stat-change">En AXE</div>
+      </div>
+    </div>
+
+    <!-- 💰 WIDGET DÉTAILLÉ FRAIS -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-top:28px;">
+      <!-- Frais Par Période -->
+      <div class="stat-card" style="background:var(--card);padding:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💰 Frais Collectés</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(34,197,94,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Aujourd'hui</div>
+            <div style="font-size:14px;font-weight:700;color:var(--green);font-family:var(--mono);" id="fees-today">-- AXE</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(59,130,246,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Ce mois</div>
+            <div style="font-size:14px;font-weight:700;color:var(--blue);font-family:var(--mono);" id="fees-month">-- AXE</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(168,85,247,0.1);border-radius:8px;">
+            <div style="font-size:11px;color:var(--sub);font-weight:600;">Tous les temps</div>
+            <div style="font-size:14px;font-weight:700;color:var(--purple);font-family:var(--mono);" id="fees-alltime">-- AXE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frais Par Type -->
+      <div class="stat-card" style="background:var(--card);padding:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Frais par Type</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;">
+          <div style="padding:10px;background:rgba(249,115,22,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P AXE</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-axe">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(6,182,212,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P USDT</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-usdt">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(239,68,68,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">P2P Ariary</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-p2p-ariary">--</div>
+          </div>
+          <div style="padding:10px;background:rgba(168,85,247,0.1);border-radius:8px;">
+            <div style="color:var(--sub);font-weight:600;margin-bottom:4px;">Autres</div>
+            <div style="font-size:13px;font-weight:700;font-family:var(--mono);" id="fees-type-other">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DÉPÔTS -->
+  <div class="page" id="page-depots">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Gestion des Dépôts</div>
+        <div class="page-sub">Approbation des dépôts utilisateurs</div>
+      </div>
+    </div>
+
+    {/* Tabs for deposit types */}
+    <div style="display:flex; margin-bottom:16px; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:var(--card);">
+      <button id="tab-deposit-usdt" onclick="switchDepositTab('usdt', this)" style="flex:1; padding:12px; background:rgba(59,130,246,0.15); border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; border-right:1px solid var(--border); transition:all 0.15s; border-bottom:3px solid var(--blue);" class="active">💵 USDT</button>
+      <button id="tab-deposit-ariary" onclick="switchDepositTab('ariary', this)" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; transition:all 0.15s;">💸 Ariary</button>
+    </div>
+
+    {/* USDT Deposits Table */}
+    <div id="deposit-usdt-container" style="display:block;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Utilisateur</th><th>Montant USDT</th><th>Frais</th><th>À créditer</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="depots-usdt-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* Ariary Deposits Table (Legacy) */}
+    <div id="deposit-ariary-container" style="display:none;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Utilisateur</th><th>Montant Ariary</th><th>AXE à créditer</th><th>Frais (2%)</th><th>Mvola</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="depots-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETRAITS -->
+  <div class="page" id="page-retraits">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Gestion des Retraits</div>
+        <div class="page-sub">Confirmez les envois Mvola</div>
+      </div>
+    </div>
+
+    {/* Tabs for withdrawal types */}
+    <div style="display:flex; margin-bottom:16px; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:var(--card);">
+      <button id="tab-withdrawal-ariary" onclick="switchWithdrawalTab('ariary', this)" style="flex:1; padding:12px; background:rgba(59,130,246,0.15); border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; border-right:1px solid var(--border); transition:all 0.15s; border-bottom:3px solid var(--blue);" class="active">💸 Ariary</button>
+    </div>
+
+    {/* Ariary Withdrawals Table */}
+    <div id="withdrawal-ariary-container" style="display:block;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Utilisateur</th><th>Montant Ariary</th><th>Frais (3%)</th><th>À envoyer</th><th>Mvola</th><th>Opérateur</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="retraits-ariary-table"></tbody>
+        </table>
+      </div>
+    </div>
+        </div>
+        <div class="table-filters">
+          <button class="filter-btn active" onclick="filterRetraits('all',this)">Tous</button>
+          <button class="filter-btn" onclick="filterRetraits('pending',this)">En attente</button>
+          <button class="filter-btn" onclick="filterRetraits('completed',this)">Traités</button>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>AXE envoyé</th><th>Ariary net</th><th>Frais (3%)</th><th>Mvola destinataire</th><th>Date</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="retraits-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div class="page" id="page-transactions">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Transactions P2P</div>
+        <div class="page-sub">En attente d'approbation</div>
+      </div>
+    </div>
+
+    {/* Tabs for P2P transaction types */}
+    <div style="display:flex; margin-bottom:16px; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:var(--card);">
+      <button id="tab-p2p-ariary" onclick="switchP2PTab('ariary', this)" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; border-right:1px solid var(--border); transition:all 0.15s;" class="active">💸 Ariary</button>
+      <button id="tab-p2p-usdt" onclick="switchP2PTab('usdt', this)" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; border-right:1px solid var(--border); transition:all 0.15s;">💵 USDT</button>
+      <button id="tab-p2p-axe" onclick="switchP2PTab('axe', this)" style="flex:1; padding:12px; background:transparent; border:none; color:var(--text); cursor:pointer; font-weight:600; font-size:13px; transition:all 0.15s;">🪙 AXE</button>
+    </div>
+
+    {/* P2P Ariary Table */}
+    <div id="p2p-ariary-container" style="display:block;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>TX ID</th><th>Montant</th><th>Frais</th><th>Date</th><th>Statut</th><th>Action</th></tr>
+          </thead>
+          <tbody id="p2p-ariary-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* P2P USDT Table */}
+    <div id="p2p-usdt-container" style="display:none;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>TX ID</th><th>Montant</th><th>Frais</th><th>Date</th><th>Statut</th><th>Action</th></tr>
+          </thead>
+          <tbody id="p2p-usdt-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* P2P AXE Table */}
+    <div id="p2p-axe-container" style="display:none;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>TX ID</th><th>Montant</th><th>Frais</th><th>Date</th><th>Statut</th><th>Action</th></tr>
+          </thead>
+          <tbody id="p2p-axe-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page-header" style="margin-top:32px;">
+      <div>
+        <div class="page-title">Toutes les Transactions</div>
+        <div class="page-sub">Historique complet</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Utilisateur</th><th>Type</th><th>Montant</th><th>Frais</th><th>Net</th><th>Date</th><th>Statut</th></tr>
+        </thead>
+        <tbody id="transactions-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- UTILISATEURS -->
+  <div class="page" id="page-utilisateurs">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Utilisateurs</div>
+        <div class="page-sub">127 comptes enregistrés</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card green"><div class="stat-label">Utilisateurs</div><div class="stat-value green" id="stat-users-page">--</div></div>
+      <div class="stat-card gold"><div class="stat-label">Total AXE circulation</div><div class="stat-value gold" id="stat-axe-page">--</div></div>
+      <div class="stat-card purple"><div class="stat-label">AXE stakés</div><div class="stat-value purple" id="stat-staked-page">--</div></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Utilisateur</th><th>Solde AXE</th><th>Solde USDT</th><th>Solde Ariary</th><th>Stakés</th><th>Dépôts total</th><th>Retraits total</th><th>Inscription</th><th>Statut</th></tr>
+        </thead>
+        <tbody id="users-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FRAIS & TAUX -->
+  <div class="page" id="page-frais">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Frais & Taux</div>
+        <div class="page-sub">Configurez les frais de transaction</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveFees()">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💰 Frais de transaction</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS DÉPÔT (%)</div>
+            <input type="number" id="fee-depot" value="2" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS RETRAIT (%)</div>
+            <input type="number" id="fee-retrait" value="3" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS P2P (%)</div>
+            <input type="number" id="fee-p2p" value="1" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">FRAIS CONVERSION (%)</div>
+            <input type="number" id="fee-convert" value="1" min="0" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📈 Taux de change</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">1 AXE = X ARIARY</div>
+            <input type="number" id="rate-axe-ariary" value="220" min="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--gold);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">1 AXE = X USDT</div>
+            <input type="number" id="rate-axe-usdt" value="0.045" min="0.001" step="0.001"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--gold);font-size:16px;font-family:var(--mono);outline:none;">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG TAUX (EXCHANGE RATES) -->
+  <div class="page" id="page-taux">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Taux de Change</div>
+        <div class="page-sub">Gérez les taux de conversion en temps réel</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="loadRates()">🔄 Rafraîchir</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <!-- AXE to Ariary -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🔄 AXE → Ariary</div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TAUX ACTUEL</div>
+          <div id="rate-axe-ariary-display" style="font-size:24px;font-weight:700;color:var(--gold);margin-bottom:12px;">--</div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NOUVEAU TAUX</div>
+          <input type="number" id="rate-axe-ariary-input" placeholder="220" min="1" step="0.01"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;margin-bottom:12px;">
+          <button onclick="updateRate('AXE', 'Ariary', 'rate-axe-ariary-input')" class="btn btn-primary" style="width:100%;">✅ Mettre à jour</button>
+        </div>
+      </div>
+
+      <!-- AXE to USDT -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🔄 AXE → USDT</div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TAUX ACTUEL</div>
+          <div id="rate-axe-usdt-display" style="font-size:24px;font-weight:700;color:var(--gold);margin-bottom:12px;">--</div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NOUVEAU TAUX</div>
+          <input type="number" id="rate-axe-usdt-input" placeholder="0.045" min="0.001" step="0.001"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;margin-bottom:12px;">
+          <button onclick="updateRate('AXE', 'USDT', 'rate-axe-usdt-input')" class="btn btn-primary" style="width:100%;">✅ Mettre à jour</button>
+        </div>
+      </div>
+
+      <!-- USDT to Ariary -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🔄 USDT → Ariary</div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TAUX ACTUEL</div>
+          <div id="rate-usdt-ariary-display" style="font-size:24px;font-weight:700;color:var(--gold);margin-bottom:12px;">--</div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">NOUVEAU TAUX</div>
+          <input type="number" id="rate-usdt-ariary-input" placeholder="4889" min="1" step="0.01"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;margin-bottom:12px;">
+          <button onclick="updateRate('USDT', 'Ariary', 'rate-usdt-ariary-input')" class="btn btn-primary" style="width:100%;">✅ Mettre à jour</button>
+        </div>
+      </div>
+
+      <!-- Info Card -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">📊 Inverse Rates</div>
+        <div style="font-size:12px;color:var(--sub);line-height:1.8;">
+          <div>USDT → AXE: 1 / AXE→USDT</div>
+          <div>Ariary → AXE: 1 / AXE→Ariary</div>
+          <div style="margin-top:12px;color:var(--warn);">⚠️ Updated automatically when you change forward rates</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;padding:16px;background:rgba(59,130,246,0.05);border:1px solid rgba(59,130,246,0.2);border-radius:12px;font-size:12px;color:var(--sub);">
+      <strong>💡 Note:</strong> Tous les taux de change sont stockés dans la base de données et synchronisés avec tous les utilisateurs en temps réel.
+    </div>
+  </div>
+
+  <!-- CONFIG WALLETS -->
+  <div class="page" id="page-wallets">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Adresses Wallets Admin</div>
+        <div class="page-sub">Configurez les adresses de réception des dépôts</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveWallets()">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1000px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🪙 Adresses de réception</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN AXE (BNB Chain)</div>
+            <input type="text" id="wallet-admin-axe" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts AXE/USDT des utilisateurs</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN USDT (BNB Chain)</div>
+            <input type="text" id="wallet-admin-usdt" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée pour recevoir les dépôts USDT des utilisateurs</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">🔐 ADRESSE WALLET RECEPTION DES FRAIS (BNB Chain)</div>
+            <input type="text" id="wallet-admin-fee" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Utilisée UNIQUEMENT pour recevoir les frais automatiques du système</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">💳 Numéros de réception</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">TELMA</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-telma-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-telma-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ORANGE</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-orange-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-orange-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">AIRTEL</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+              <input type="text" id="mvola-aitel-nom" placeholder="Nom du compte"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+              <input type="text" id="mvola-aitel-numero" placeholder="Numéro"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);">
+        <div style="font-size:12px;color:var(--green);font-weight:600;">✓ Info</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;">
+          • Les adresses configurées ici seront affichées dans le formulaire de dépôt de l'app<br>
+          • Les utilisateurs enverront leurs tokens à ces adresses<br>
+          • Assurez-vous que ces adresses possèdent les clés privées correctes
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG FRAIS - COMPLETE FEE MANAGEMENT -->
+  <div class="page" id="page-frais">
+    <div class="page-header">
+      <div>
+        <div class="page-title">💰 Gestion des Frais</div>
+        <div class="page-sub">Dashboard financier | Statistiques en temps réel | Configuration dynamique</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="loadFeeStats('today')" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);">🔄 Rafraîchir</button>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 28px;">
+      <div class="stat-card gold">
+        <div class="stat-label">Frais collectés (Aujourd'hui)</div>
+        <div class="stat-value gold" id="stat-today">0</div>
+        <div class="stat-change" id="stat-today-count">0 transactions</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Frais collectés (Cette semaine)</div>
+        <div class="stat-value green" id="stat-week">0</div>
+        <div class="stat-change"><span id="stat-week-count">0 transactions</span></div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Frais collectés (Ce mois)</div>
+        <div class="stat-value blue" id="stat-month">0</div>
+        <div class="stat-change"><span id="stat-month-count">0 transactions</span></div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Total (Tous les temps)</div>
+        <div class="stat-value purple" id="stat-all">0</div>
+        <div class="stat-change"><span id="stat-all-count">0 transactions</span></div>
+      </div>
+    </div>
+
+    <!-- PERIOD SELECTOR -->
+    <div style="display: flex; gap: 10px; margin-bottom: 28px;">
+      <button onclick="loadFeeStats('today')" style="padding: 8px 16px; border-radius: 8px; background: rgba(240,180,41,0.15); color: var(--gold); border: 1px solid rgba(240,180,41,0.3); cursor: pointer; font-size: 12px; font-weight: 600; font-family: var(--sans);">📅 Aujourd'hui</button>
+      <button onclick="loadFeeStats('week')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--sub); border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; font-family: var(--sans);">📊 Cette semaine</button>
+      <button onclick="loadFeeStats('month')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--sub); border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; font-family: var(--sans);">📈 Ce mois</button>
+      <button onclick="loadFeeStats('all')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--sub); border: 1px solid var(--border); cursor: pointer; font-size: 12px; font-weight: 600; font-family: var(--sans);">♾️ Tous les temps</button>
+    </div>
+
+    <!-- TWO COLUMN LAYOUT -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px;">
+      <!-- LEFT: BREAKDOWN BY TYPE -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">📊 Frais par Type</div>
+        </div>
+        <div style="padding: 20px;" id="fee-by-type-container">
+          <div style="text-align: center; color: var(--sub); font-size: 12px;">Chargement...</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: BREAKDOWN BY CURRENCY -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">💱 Frais par Devise</div>
+        </div>
+        <div style="padding: 20px;" id="fee-by-currency-container">
+          <div style="text-align: center; color: var(--sub); font-size: 12px;">Chargement...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEE CONFIGURATION -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">⚙️ Configuration des Frais</div>
+        <button class="btn btn-primary" onclick="resetFeeInputs()" style="background: rgba(240,180,41,0.15); color: var(--gold); border: 1px solid rgba(240,180,41,0.3);">↻ Réinitialiser</button>
+      </div>
+      <div style="padding: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px;">
+          <!-- P2P Section -->
+          <div style="background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 16px;">
+            <div style="font-size: 12px; color: var(--blue); font-weight: 700; margin-bottom: 12px;">💱 P2P (3 devises)</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">P2P AXE (%)</label>
+                <input type="number" id="fee_p2p_axe" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">P2P USDT (%)</label>
+                <input type="number" id="fee_p2p_usdt" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">P2P ARIARY (%)</label>
+                <input type="number" id="fee_p2p_ariary" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+            </div>
+          </div>
+
+          <!-- DEPOSIT Section -->
+          <div style="background: rgba(34,197,94,0.05); border: 1px solid rgba(34,197,94,0.2); border-radius: 12px; padding: 16px;">
+            <div style="font-size: 12px; color: var(--green); font-weight: 700; margin-bottom: 12px;">📥 Dépôt (3 devises)</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Dépôt AXE (%)</label>
+                <input type="number" id="fee_deposit_axe" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Dépôt USDT (%)</label>
+                <input type="number" id="fee_deposit_usdt" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Dépôt ARIARY (%)</label>
+                <input type="number" id="fee_deposit_ariary" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+            </div>
+          </div>
+
+          <!-- WITHDRAWAL + CONVERSION Section -->
+          <div style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 16px;">
+            <div style="font-size: 12px; color: var(--red); font-weight: 700; margin-bottom: 12px;">📤 Retrait + Conv</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Retrait AXE (%)</label>
+                <input type="number" id="fee_withdraw_axe" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Retrait USDT (%)</label>
+                <input type="number" id="fee_withdraw_usdt" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Retrait ARIARY (%)</label>
+                <input type="number" id="fee_withdraw_ariary" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+              <div>
+                <label style="font-size: 10px; color: var(--sub); display: block; margin-bottom: 4px;">Conversion (%)</label>
+                <input type="number" id="fee_convert" min="0" max="100" step="0.01" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 12px; font-family: var(--mono);">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="applyAllFeeChanges()" style="width: 100%; padding: 12px; background: var(--gold); color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; margin-top: 16px;">💾 Appliquer tous les changements</button>
+      </div>
+    </div>
+
+    <!-- FEE COLLECTION INTERVAL CONFIGURATION -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">⏱️ Rythme de Collecte des Frais</div>
+      </div>
+      <div style="padding: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: end;">
+          <div>
+            <label style="font-size: 12px; color: var(--sub); display: block; margin-bottom: 8px; font-weight: 600;">Intervalle de Traitement (Minutes)</label>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+              <button onclick="setFeeCollectionInterval(1)" class="fee-interval-btn" data-interval="1" style="padding: 10px; background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">1 min</button>
+              <button onclick="setFeeCollectionInterval(30)" class="fee-interval-btn" data-interval="30" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">30 min</button>
+              <button onclick="setFeeCollectionInterval(60)" class="fee-interval-btn" data-interval="60" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">1h</button>
+              <button onclick="setFeeCollectionInterval(120)" class="fee-interval-btn" data-interval="120" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">2h</button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
+              <button onclick="setFeeCollectionInterval(180)" class="fee-interval-btn" data-interval="180" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">3h</button>
+              <button onclick="setFeeCollectionInterval(360)" class="fee-interval-btn" data-interval="360" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">6h</button>
+              <button onclick="setFeeCollectionInterval(720)" class="fee-interval-btn" data-interval="720" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">12h</button>
+              <button onclick="setFeeCollectionInterval(1440)" class="fee-interval-btn" data-interval="1440" style="padding: 10px; background: transparent; color: var(--sub); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 11px; font-family: var(--sans);">24h</button>
+            </div>
+          </div>
+          <div>
+            <div style="background: rgba(59,130,246,0.05); border-left: 3px solid var(--blue); border-radius: 8px; padding: 16px;">
+              <div style="font-size: 11px; color: var(--sub); margin-bottom: 4px;">Intervalle Actuel</div>
+              <div style="font-size: 20px; font-weight: 700; color: var(--blue); margin-bottom: 8px;" id="current-interval-display">1 minute</div>
+              <div style="font-size: 10px; color: var(--sub);">Prochain traitement: <span id="next-processing-time">--:--</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT TRANSACTIONS -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title">📋 Frais Récemment Collectés</div>
+      </div>
+      <table id="recent-fees-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Montant</th>
+            <th>Devise</th>
+            <th>%</th>
+            <th>Utilisateur</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="recent-fees-tbody">
+          <tr><td colspan="6" style="text-align: center; color: var(--sub);">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CONFIG WALLETS -->
+  <div class="page" id="page-wallets">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Configuration des Wallets</div>
+        <div class="page-sub">Configurez les adresses admin pour AXE et USDT</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveWalletsConfig()" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;">🪙 Wallets BSC (Binance Smart Chain)</div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN - AXE</div>
+            <input type="text" id="wallet-admin-axe" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Sur Binance Smart Chain (BSC)</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">ADRESSE WALLET ADMIN - USDT</div>
+            <input type="text" id="wallet-admin-usdt" placeholder="0x..."
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Sur Binance Smart Chain (BSC)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);">
+        <div style="font-size:12px;color:var(--blue);font-weight:600;">ℹ️ À Savoir</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;">
+          • AXE: Token officiel sur BSC<br>
+            Address: 0xc8d07b5c2403efFa58aDCCC23f8D4217e94F11Fa<br>
+          <br>
+          • USDT: Token officiel Tether sur BSC<br>
+            Address: 0x55d398326f99059fF775485246999027B3197955<br>
+          <br>
+          • Ces adresses recevront les frais collectés
+        </div>
+      </div>
+
+      <div class="stat-card" style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);">
+        <div style="font-size:12px;color:var(--green);font-weight:600;">✓ Flux Collecte Frais</div>
+        <div style="font-size:12px;color:var(--sub);margin-top:8px;font-family:var(--mono);">
+          Utilisateur: P2P 100 AXE<br>
+          → Frais 1% = 1 AXE<br>
+          → 1 AXE envoyé AUTOMATIQUEMENT<br>
+            à votre adresse wallet-admin-axe<br>
+          → Utilisateur reçoit 99 AXE ✓
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG STAKING -->
+  <div class="page" id="page-staking">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Configuration du Staking</div>
+        <div class="page-sub">Gérez l'APY flexible/fixe, les durées et les récompenses</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="saveStakingConfig()" style="background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);">💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <!-- APY CONFIGURATION -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <!-- Flexible APY -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--gold);">🔓 Staking Flexible</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">APY (%)</div>
+            <input type="number" id="staking-apy-flexible" value="12" min="0" max="100" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 APY pour staking flexible</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">MONTANT MIN</div>
+            <input type="number" id="staking-min-amount" value="100" min="1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Minimum à staker (en unité de devise)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed APY -->
+      <div class="stat-card" style="background:var(--card);">
+        <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--purple);">🔒 Staking Fixe (30j)</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">APY (%)</div>
+            <input type="number" id="staking-apy-fixed" value="18" min="0" max="100" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 APY pour staking fixe (1.5x bonus)</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">BONUS MULTIPLICATEUR</div>
+            <input type="number" id="staking-bonus-multiplier" value="1.5" min="1" max="10" step="0.1"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;">
+            <div style="font-size:10px;color:var(--sub);margin-top:4px;">💡 Multiplicateur par rapport flexible</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DURATION CONFIGURATION -->
+    <div class="stat-card" style="background:var(--card);margin-bottom:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:16px;">⏱️ Durées de Staking Fixe</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">7 JOURS</div>
+          <input type="checkbox" id="duration-7" checked style="margin-right:6px;">
+          <input type="number" id="duration-7-apy" value="15" min="0" max="100" step="0.1" placeholder="APY"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">14 JOURS</div>
+          <input type="checkbox" id="duration-14" checked style="margin-right:6px;">
+          <input type="number" id="duration-14-apy" value="16" min="0" max="100" step="0.1" placeholder="APY"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">30 JOURS</div>
+          <input type="checkbox" id="duration-30" checked style="margin-right:6px;">
+          <input type="number" id="duration-30-apy" value="18" min="0" max="100" step="0.1" placeholder="APY"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">60 JOURS</div>
+          <input type="checkbox" id="duration-60" checked style="margin-right:6px;">
+          <input type="number" id="duration-60-apy" value="20" min="0" max="100" step="0.1" placeholder="APY"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;margin-top:4px;">
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--sub);font-family:var(--mono);margin-bottom:6px;">90 JOURS</div>
+          <input type="checkbox" id="duration-90" checked style="margin-right:6px;">
+          <input type="number" id="duration-90-apy" value="22" min="0" max="100" step="0.1" placeholder="APY"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;margin-top:4px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="margin:0;padding:16px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:12px;font-size:12px;color:var(--blue);">
+        <strong>ℹ️ Comment ça marche:</strong>
+        <div style="margin-top:8px;color:var(--sub);">
+          • <strong>Flexible:</strong> Retrait possible anytime<br>
+          • <strong>Fixe:</strong> Lockup pour la durée choisie, APY augmenté<br>
+          • Les APY fixes varient selon la durée<br>
+          • Durées cochées = disponibles à la sélection
+        </div>
+      </div>
+
+      <div style="margin:0;padding:16px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);border-radius:12px;font-size:12px;color:var(--green);">
+        <strong>✓ Synchronisation:</strong>
+        <div style="margin-top:8px;color:var(--sub);">
+          • Changes appliqués AUTOMATIQUEMENT<br>
+          • Les utilisateurs verront les nouveaux APY<br>
+          • Min amount contrôle le staking minimum<br>
+          • Les récompenses calculées en temps réel
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase config
+const SUPABASE_URL = 'https://bozaertrmldtacnkfvan.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvemFlcnRybWxkdGFjbmtmdmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNzkwNDQsImV4cCI6MjA4ODk1NTA0NH0.J_jkVDwzphVVV-EwuT5hpB-_lzMbBGXO-alJhIAOKog'
+
+const { createClient } = supabase
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+let currentUser = null
+let currentId = null
+
+// ===== LOGIN SUPABASE AUTH =====
+let autoRefreshInterval = null
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const email = document.getElementById('admin-email').value
+  const password = document.getElementById('admin-password').value
+  const errorDiv = document.getElementById('login-error')
+  
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: email,
+      password: password
+    })
+    
+    if (error) {
+      console.error('❌ Login error:', error)
+      errorDiv.textContent = '❌ Email ou mot de passe incorrect'
+      errorDiv.style.display = 'block'
+      document.getElementById('admin-password').value = ''
+      setTimeout(() => {
+        errorDiv.style.display = 'none'
+      }, 3000)
+      return
+    }
+    
+    if (data?.user) {
+      console.log('✅ Admin authentifié:', data.user.id)
+      sessionStorage.setItem('admin_authenticated', 'true')
+      sessionStorage.setItem('admin_user_id', data.user.id)
+      document.getElementById('auth-overlay').style.display = 'none'
+      loadDashboard()
+      
+      // Auto-refresh des stats
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+      autoRefreshInterval = setInterval(() => {
+        loadDashboardStats()
+      }, 10000)
+    }
+  } catch (err) {
+    console.error('❌ Erreur login:', err)
+    errorDiv.textContent = '❌ Erreur de connexion'
+    errorDiv.style.display = 'block'
+    setTimeout(() => {
+      errorDiv.style.display = 'none'
+    }, 3000)
+  }
+})
+
+// Vérifier si déjà authentifié au chargement
+window.addEventListener('load', async () => {
+  try {
+    const { data } = await sb.auth.getSession()
+    
+    if (data?.session) {
+      console.log('✅ Session active détectée')
+      sessionStorage.setItem('admin_authenticated', 'true')
+      sessionStorage.setItem('admin_user_id', data.session.user.id)
+      document.getElementById('auth-overlay').style.display = 'none'
+      loadDashboard()
+      
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+      autoRefreshInterval = setInterval(() => {
+        loadDashboardStats()
+      }, 10000)
+    } else {
+      console.log('⚠️ Pas de session active')
+      document.getElementById('auth-overlay').style.display = 'flex'
+    }
+  } catch (err) {
+    console.error('❌ Erreur session check:', err)
+    document.getElementById('auth-overlay').style.display = 'flex'
+  }
+})
+
+// Permitre login à l'appui de Entrée
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('admin-password')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('btn-login').click()
+    }
+  })
+})
+
+async function logout() {
+  if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
+    try {
+      await sb.auth.signOut()
+      sessionStorage.removeItem('admin_authenticated')
+      sessionStorage.removeItem('admin_user_id')
+      if (autoRefreshInterval) clearInterval(autoRefreshInterval)
+      location.reload()
+    } catch (err) {
+      console.error('❌ Erreur logout:', err)
+      location.reload()
+    }
+  }
+}
+
+async function loadDashboard() {
+  await loadDepots()
+  await loadRetraits()
+  await loadTransactions()
+  await loadDashboardStats()
+  await loadUsers()
+  await updateBadges()
+}
+
+async function loadFeesStats() {
+  try {
+    // Récupérer tous les frais collectés
+    const { data: allFees } = await sb.from('fees_collected').select('amount_axe, transaction_type, created_at')
+    
+    if (!allFees || allFees.length === 0) {
+      return { totalAllTime: 0, totalToday: 0, totalThisMonth: 0, byType: {} }
+    }
+
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    let totalAllTime = 0
+    let totalToday = 0
+    let totalThisMonth = 0
+    const byType = {}
+
+    allFees.forEach(fee => {
+      const amount = fee.amount_axe || 0
+      totalAllTime += amount
+
+      // Frais d'aujourd'hui
+      const feeDate = new Date(fee.created_at)
+      const feeDay = new Date(feeDate.getFullYear(), feeDate.getMonth(), feeDate.getDate())
+      if (feeDay.getTime() === today.getTime()) {
+        totalToday += amount
+      }
+
+      // Frais ce mois
+      if (feeDate >= startOfMonth && feeDate < now) {
+        totalThisMonth += amount
+      }
+
+      // Par type
+      const type = fee.transaction_type || 'unknown'
+      byType[type] = (byType[type] || 0) + amount
+    })
+
+    return { totalAllTime, totalToday, totalThisMonth, byType }
+  } catch (err) {
+    console.error('Erreur chargement stats frais:', err)
+    return { totalAllTime: 0, totalToday: 0, totalThisMonth: 0, byType: {} }
+  }
+}
+
+async function loadDashboardStats() {
+  try {
+    // Config pour les taux de change
+    const { data: configData } = await sb.from('config').select('*').eq('id', 1).single()
+    const rateAxeAriary = configData?.rate_axe_ariary || 220
+    const rateAxeUsdt = configData?.rate_axe_usdt || 0.045
+    const feeDepot = configData?.fee_depot || 2
+    const feeRetrait = configData?.fee_retrait || 3
+    
+    // Nombre total d'utilisateurs
+    const { data: usersData } = await sb.from('users').select('id')
+    const totalUsers = usersData?.length || 0
+    
+    // Somme des AXE, USDT, et Ariary en circulation
+    const { data: walletData } = await sb.from('users').select('balance_axe, axe_staked, balance_usdt, balance_ariary')
+    const totalAXE = (walletData || []).reduce((sum, u) => sum + (u.balance_axe || 0), 0)
+    const totalStaked = (walletData || []).reduce((sum, u) => sum + (u.axe_staked || 0), 0)
+    const totalUSDT = (walletData || []).reduce((sum, u) => sum + (u.balance_usdt || 0), 0)
+    const totalAriary = (walletData || []).reduce((sum, u) => sum + (u.balance_ariary || 0), 0)
+    
+    // TOTAL Dépôts
+    const { data: allDepotsData } = await sb.from('depots').select('montant_ariary')
+    const totalDepots = allDepotsData?.length || 0
+    const totalDepotsFees = (allDepotsData || []).reduce((sum, d) => sum + (d.montant_ariary || 0) * (feeDepot / 100), 0) / rateAxeAriary
+    
+    // TOTAL Retraits
+    const { data: allRetraitsData } = await sb.from('retraits').select('montant_ariary')
+    const totalRetraits = allRetraitsData?.length || 0
+    const totalRetraitsFees = (allRetraitsData || []).reduce((sum, r) => sum + (r.montant_ariary || 0) * (feeRetrait / 100), 0) / rateAxeAriary
+    
+    // 🔥 FRAIS P2P ET AUTRES (NEW)
+    const feesStats = await loadFeesStats()
+    const totalP2PFees = feesStats.totalAllTime || 0
+    
+    // Total des frais en AXE (dépôt + retrait + P2P)
+    const totalFees = totalDepotsFees + totalRetraitsFees + totalP2PFees
+    
+    // Utilisateurs actifs AUJOURD'HUI
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    
+    const { data: activeToday } = await sb.from('users').select('id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    const { data: transactionsToday } = await sb.from('depots').select('user_id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    const { data: retraitsToday } = await sb.from('retraits').select('user_id').gte('created_at', today.toISOString()).lt('created_at', tomorrow.toISOString())
+    
+    const activeUserIds = new Set()
+    activeToday?.forEach(u => activeUserIds.add(u.id))
+    transactionsToday?.forEach(t => activeUserIds.add(t.user_id))
+    retraitsToday?.forEach(r => activeUserIds.add(r.user_id))
+    const activeUsersCount = activeUserIds.size
+    
+    // Mettre à jour le dashboard
+    document.getElementById('stat-axe-circulation').textContent = (totalAXE / 1000000).toFixed(1)
+    document.getElementById('stat-total-fees').textContent = totalFees.toFixed(2)
+    document.getElementById('stat-depots-pending').textContent = totalDepots
+    document.getElementById('stat-retraits-pending').textContent = totalRetraits
+    document.getElementById('stat-usdt-circulation').textContent = totalUSDT.toFixed(2)
+    document.getElementById('stat-ariary-circulation').textContent = (totalAriary / 1000000).toFixed(1)
+    document.getElementById('active-users-label').textContent = activeUsersCount + ' utilisateurs'
+    
+    // 🔥 Afficher les frais détaillés
+    if (document.getElementById('fees-today')) {
+      document.getElementById('fees-today').textContent = feesStats.totalToday.toFixed(8) + ' AXE'
+      document.getElementById('fees-month').textContent = feesStats.totalThisMonth.toFixed(8) + ' AXE'
+      document.getElementById('fees-alltime').textContent = feesStats.totalAllTime.toFixed(8) + ' AXE'
+      
+      // Par type
+      const byType = feesStats.byType || {}
+      document.getElementById('fees-type-p2p-axe').textContent = (byType['p2p_axe'] || 0).toFixed(8) + ' AXE'
+      document.getElementById('fees-type-p2p-usdt').textContent = (byType['p2p_usdt'] || 0).toFixed(8) + ' AXE'
+      document.getElementById('fees-type-p2p-ariary').textContent = (byType['p2p_ariary'] || 0).toFixed(8) + ' AXE'
+      
+      // Autres (conversion, retrait, depot)
+      const otherTypes = ['conversion', 'retrait', 'depot']
+      let otherTotal = 0
+      otherTypes.forEach(type => {
+        otherTotal += byType[type] || 0
+      })
+      document.getElementById('fees-type-other').textContent = otherTotal.toFixed(8) + ' AXE'
+    }
+    
+    // Load graphiques
+    await loadLast7DaysChart(rateAxeAriary, rateAxeUsdt)
+    await loadActiveUsersChart(activeUsersCount)
+    
+    // Mettre à jour la page utilisateurs
+    document.getElementById('stat-users-page').textContent = totalUsers
+    document.getElementById('stat-axe-page').textContent = (totalAXE / 1000000).toFixed(1)
+    document.getElementById('stat-staked-page').textContent = (totalStaked / 1000).toFixed(0) + 'K'
+  } catch (err) {
+    console.error('Erreur chargement stats:', err)
+  }
+}
+
+async function loadLast7DaysChart(rateAxeAriary, rateAxeUsdt) {
+  try {
+    const labels = []
+    const depositsData = []
+    const withdrawsData = []
+    const p2pData = []
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      date.setHours(0, 0, 0, 0)
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+      
+      labels.push(date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }))
+      
+      // Dépôts du jour (convertis en AXE)
+      const { data: dayDeposits } = await sb.from('depots').select('montant_ariary').gte('created_at', date.toISOString()).lt('created_at', nextDate.toISOString())
+      const depositVolume = (dayDeposits || []).reduce((sum, d) => sum + (d.montant_ariary || 0), 0) / rateAxeAriary
+      depositsData.push(depositVolume)
+      
+      // Retraits du jour (convertis en AXE)
+      const { data: dayWithdraws } = await sb.from('retraits').select('montant_ariary').gte('created_at', date.toISOString()).lt('created_at', nextDate.toISOString())
+      const withdrawVolume = (dayWithdraws || []).reduce((sum, r) => sum + (r.montant_ariary || 0), 0) / rateAxeAriary
+      withdrawsData.push(withdrawVolume)
+      
+      // P2P (simulé pour maintenant, 0 car pas de table)
+      p2pData.push(0)
+    }
+    
+    const canvasEl = document.getElementById('transactionsChart')
+    if (!canvasEl) return
+    
+    if (window.transactionsChartInstance) {
+      window.transactionsChartInstance.destroy()
+    }
+    
+    const ctx = canvasEl.getContext('2d')
+    window.transactionsChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Dépôts', data: depositsData, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1 },
+          { label: 'Retraits', data: withdrawsData, backgroundColor: 'rgba(239, 68, 68, 0.6)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 1 },
+          { label: 'P2P', data: p2pData, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { labels: { color: 'rgba(232, 237, 245, 0.7)' } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: 'rgba(107, 138, 173, 0.7)' }, grid: { color: 'rgba(26, 45, 74, 0.3)' } },
+          x: { ticks: { color: 'rgba(107, 138, 173, 0.7)' }, grid: { color: 'rgba(26, 45, 74, 0.3)' } }
+        }
+      }
+    })
+  } catch (err) {
+    console.error('Erreur graphique 7 jours:', err)
+  }
+}
+
+async function loadActiveUsersChart(count) {
+  try {
+    const canvasEl = document.getElementById('activeUsersChart')
+    if (!canvasEl) return
+    
+    if (window.activeUsersChartInstance) {
+      window.activeUsersChartInstance.destroy()
+    }
+    
+    const ctx = canvasEl.getContext('2d')
+    window.activeUsersChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Actifs', 'Inactifs'],
+        datasets: [{
+          data: [count, Math.max(0, 100 - count)],
+          backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(107, 138, 173, 0.2)'],
+          borderColor: ['rgba(34, 197, 94, 1)', 'rgba(107, 138, 173, 0.5)'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { display: false } }
+      }
+    })
+  } catch (err) {
+    console.error('Erreur widget actifs:', err)
+  }
+}
+
+async function loadDepots() {
+  try {
+    const { data, error } = await sb.from('transactions').select('*, users(nom, id)').eq('type', 'deposit_ariary_request').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('depots-table')
+    tbody.innerHTML = (data || []).map(d => {
+      const meta = d.metadata || {}
+      return `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${(d.montant / 220).toFixed(2)} AXE</td>
+        <td class="mono">Ar ${(d.montant * 0.02).toLocaleString() || 0}</td>
+        <td class="mono">${meta.mvola_number || 'N/A'} (${meta.mvola_operator || 'N/A'})</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending_approval' ? '⏳ En attente' : d.statut === 'completed' ? '✓ Approuvé' : '✕ Rejeté'}</span></td>
+        <td>
+          <button class="btn btn-view" onclick="viewDepotWithProof('${d.id}', '${meta.proof_url || ''}')">Voir</button>
+        </td>
+      </tr>
+    `}).join('')
+  } catch (err) {
+    console.error('Erreur chargement dépôts:', err)
+  }
+}
+
+async function loadRetraits() {
+  try {
+    const { data, error } = await sb.from('retraits').select('*, users(nom)').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('retraits-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">${d.axe_envoye || 0} AXE</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : d.statut === 'approved' ? '✓ Approuvé' : '✓ Traité'}</span></td>
+        <td><button class="btn btn-view" onclick="viewRetrait('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement retraits:', err)
+  }
+}
+
+async function loadTransactions() {
+  try {
+    // Load P2P Ariary, USDT, AXE pending
+    await loadP2PAriary()
+    await loadP2PUSDT()
+    await loadP2PAXE()
+    
+    const { data, error } = await sb.from('transactions').select('*, users(nom)').order('created_at', { ascending: false }).limit(50)
+    if (error) throw error
+    
+    const tbody = document.getElementById('transactions-table')
+    tbody.innerHTML = (data || []).map((d, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td>${d.type || 'N/A'}</td>
+        <td class="mono">${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${(d.montant - d.frais)?.toLocaleString() || 0}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut}</span></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement transactions:', err)
+  }
+}
+
+async function loadP2PAriary() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*')
+      .eq('type', 'p2p_ariary_request')
+      .eq('statut', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('p2p-ariary-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--sub);">Aucune transaction en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => {
+      const metadata = d.metadata || {}
+      const feeAxe = metadata.fee_in_axe || 0
+      return `
+      <tr>
+        <td class="mono">${d.id.substring(0, 8)}</td>
+        <td class="mono">Ar ${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${feeAxe?.toFixed(8) || 0} AXE</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveP2PAriary('${d.id}')">✓ Approuver</button>
+        </td>
+      </tr>
+    `
+    }).join('')
+  } catch (err) {
+    console.error('Erreur chargement P2P Ariary:', err)
+  }
+}
+
+async function approveP2PAriary(transactionId) {
+  if (!confirm(`Approuver cette transaction P2P Ariary? Les balances seront mises à jour et les frais collectés.`)) return
+  
+  try {
+    // 🔄 Call RPC to approve and execute (balances + fees updated atomically)
+    const { data: result, error: rpcError } = await sb.rpc('approve_p2p_ariary', {
+      transaction_id: transactionId
+    })
+    
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw rpcError
+    }
+    
+    if (!result?.success) {
+      throw new Error(result?.error || 'Approval failed')
+    }
+    
+    // ✅ Success
+    alert(`✓ P2P Ariary approuvé!
+    
+💰 Montant: Ar ${result.amount_ariary?.toLocaleString()}
+💸 Frais AXE: ${result.fee_axe?.toFixed(8)}
+✅ Balances mises à jour!`)
+    
+    // Refresh all data
+    await loadP2PAriary()
+    await loadTransactions()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    console.error('Approval error:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+async function viewDepot(id) {
+  try {
+    const { data, error } = await sb.from('depots').select('*, users(nom)').eq('id', id).single()
+    if (error) throw error
+    
+    document.getElementById('modal-title').textContent = `📥 Dépôt #${id}`
+    document.getElementById('modal-user').textContent = data.users?.nom || 'N/A'
+    document.getElementById('modal-status').innerHTML = `<span class="status ${data.statut}">${data.statut === 'pending' ? '⏳ En attente' : '✓ Approuvé'}</span>`
+    document.getElementById('modal-date').textContent = new Date(data.created_at).toLocaleDateString('fr-FR')
+    document.getElementById('modal-id').textContent = id
+    document.getElementById('modal-amount').textContent = `Ar ${data.montant_ariary?.toLocaleString() || 0}`
+    document.getElementById('modal-fees').textContent = `Ar ${data.frais?.toLocaleString() || 0} (2%)`
+    
+    const extraInfo = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">AXE À CRÉDITER</div>
+          <div style="font-size:14px;font-weight:700;color:var(--blue);">${data.axe_credite || 0} AXE</div>
+        </div>
+        <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">MVOLA UTILISATEUR</div>
+          <div style="font-size:13px;font-family:var(--mono);">${data.mvola || 'N/A'}</div>
+        </div>
+      </div>
+    `
+    document.getElementById('modal-extra-info').innerHTML = extraInfo
+    
+    const btn = document.getElementById('modal-action-btn')
+    if (data.statut === 'pending') {
+      btn.textContent = '✓ Approuver ce dépôt'
+      btn.style.background = 'rgba(34,197,94,0.15)'
+      btn.style.color = 'var(--green)'
+      btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      btn.onclick = () => approveDepot(id)
+    } else {
+      btn.textContent = '✓ Déjà approuvé'
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+    }
+    
+    currentId = id
+    document.getElementById('transaction-modal').style.display = 'flex'
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function viewDepotWithProof(id, proofUrl) {
+  try {
+    const { data, error } = await sb.from('transactions').select('*, users(nom)').eq('id', id).single()
+    if (error) throw error
+    
+    const meta = data.metadata || {}
+    
+    document.getElementById('modal-title').textContent = `📥 Dépôt Ariary #${id.slice(0, 8)}`
+    document.getElementById('modal-user').textContent = data.users?.nom || 'N/A'
+    document.getElementById('modal-status').innerHTML = `<span class="status ${data.statut}">${data.statut === 'pending_approval' ? '⏳ En attente' : data.statut === 'completed' ? '✓ Approuvé' : '✕ Rejeté'}</span>`
+    document.getElementById('modal-date').textContent = new Date(data.created_at).toLocaleDateString('fr-FR')
+    document.getElementById('modal-id').textContent = id.slice(0, 8)
+    document.getElementById('modal-amount').textContent = `Ar ${data.montant?.toLocaleString() || 0}`
+    document.getElementById('modal-fees').textContent = `Ar ${(data.montant * 0.02)?.toLocaleString() || 0} (2%)`
+    
+    const extraInfo = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div style="padding:12px;background:rgba(59,130,246,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">AXE À CRÉDITER</div>
+          <div style="font-size:14px;font-weight:700;color:var(--blue);">${(data.montant / 220).toFixed(2)} AXE</div>
+        </div>
+        <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">OPÉRATEUR</div>
+          <div style="font-size:13px;font-weight:600;">${meta.mvola_operator || 'N/A'}</div>
+        </div>
+      </div>
+      
+      <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">NUMÉRO MVOLA</div>
+        <div style="font-size:13px;font-family:var(--mono);">${meta.mvola_number || 'N/A'}</div>
+      </div>
+      
+      ${proofUrl ? `
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--sub);margin-bottom:8px;font-weight:600;">📸 PREUVE DE PAIEMENT</div>
+          <img src="${proofUrl}" alt="Preuve" style="width:100%;max-height:300px;border-radius:6px;object-fit:contain;background:rgba(0,0,0,0.1);">
+        </div>
+      ` : '<div style="color:var(--sub);font-size:12px;margin-bottom:16px;">❌ Aucune preuve fournie</div>'}
+    `
+    
+    document.getElementById('modal-extra').innerHTML = extraInfo
+    
+    // Add action buttons
+    const btn = document.getElementById('modal-action-btn')
+    if (data.statut === 'pending_approval') {
+      btn.innerHTML = `
+        <div style="display: flex; gap: 8px;">
+          <button onclick="approveDepotAriary('${id}')" style="flex: 1; padding: 12px; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: var(--green); border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            ✓ Approuver
+          </button>
+          <button onclick="rejectDepotAriary('${id}')" style="flex: 1; padding: 12px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            ✕ Rejeter
+          </button>
+        </div>
+      `
+    } else {
+      btn.textContent = data.statut === 'completed' ? '✓ Dépôt approuvé' : '✕ Dépôt rejeté'
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+    }
+    
+    showModal()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function viewRetrait(id) {
+  try {
+    const { data, error } = await sb.from('retraits').select('*, users(nom)').eq('id', id).single()
+    if (error) throw error
+    
+    document.getElementById('modal-title').textContent = `📤 Retrait #${id}`
+    document.getElementById('modal-user').textContent = data.users?.nom || 'N/A'
+    document.getElementById('modal-status').innerHTML = `<span class="status ${data.statut}">${data.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span>`
+    document.getElementById('modal-date').textContent = new Date(data.created_at).toLocaleDateString('fr-FR')
+    document.getElementById('modal-id').textContent = id
+    document.getElementById('modal-amount').textContent = `${data.axe_envoye || 0} AXE`
+    document.getElementById('modal-fees').textContent = `Ar ${data.frais?.toLocaleString() || 0} (3%)`
+    
+    const extraInfo = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="padding:12px;background:rgba(34,197,94,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">ARIARY NET</div>
+          <div style="font-size:14px;font-weight:700;color:var(--green);">Ar ${(data.montant_ariary - data.frais)?.toLocaleString() || 0}</div>
+        </div>
+        <div style="padding:12px;background:rgba(107,138,173,0.1);border-radius:8px;">
+          <div style="font-size:11px;color:var(--sub);margin-bottom:4px;">MVOLA DESTINATAIRE</div>
+          <div style="font-size:13px;font-family:var(--mono);">${data.mvola || 'N/A'}</div>
+        </div>
+      </div>
+    `
+    document.getElementById('modal-extra-info').innerHTML = extraInfo
+    
+    const btn = document.getElementById('modal-action-btn')
+    if (data.statut === 'pending') {
+      btn.textContent = '✓ Approuver ce retrait'
+      btn.style.background = 'rgba(34,197,94,0.15)'
+      btn.style.color = 'var(--green)'
+      btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      btn.onclick = () => approveRetrait(id)
+    } else if (data.statut === 'approved') {
+      btn.textContent = '✓ Marquer comme envoyé'
+      btn.style.background = 'rgba(168,85,247,0.15)'
+      btn.style.color = 'var(--purple)'
+      btn.style.borderColor = 'rgba(168,85,247,0.3)'
+      btn.onclick = () => completeRetrait(id)
+    } else {
+      btn.textContent = '✓ Déjà envoyé'
+      btn.disabled = true
+      btn.style.opacity = '0.5'
+    }
+    
+    currentId = id
+    document.getElementById('transaction-modal').style.display = 'flex'
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function filterDepots(status, el) {
+  document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  
+  try {
+    let query = sb.from('depots').select('*, users(nom)').order('created_at', { ascending: false })
+    
+    if (status !== 'all') {
+      query = query.eq('statut', status)
+    }
+    
+    const { data, error } = await query
+    if (error) throw error
+    
+    const tbody = document.getElementById('depots-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">${d.axe_credite || 0} AXE</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Approuvé'}</span></td>
+        <td><button class="btn btn-view" onclick="viewDepot('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur filtrage dépôts:', err)
+  }
+}
+
+async function loadWallets() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
+      document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+      document.getElementById('wallet-admin-fee').value = data.wallet_admin_fee || ''
+      
+      // Split Telma
+      const [telmaName, telmaNum] = (data.telma || ' / ').split(' / ')
+      document.getElementById('mvola-telma-nom').value = telmaName.trim()
+      document.getElementById('mvola-telma-numero').value = telmaNum.trim()
+      
+      // Split Orange
+      const [orangeName, orangeNum] = (data.orange || ' / ').split(' / ')
+      document.getElementById('mvola-orange-nom').value = orangeName.trim()
+      document.getElementById('mvola-orange-numero').value = orangeNum.trim()
+      
+      // Split Airtel
+      const [airtelName, airtelNum] = (data.airtel || ' / ').split(' / ')
+      document.getElementById('mvola-aitel-nom').value = airtelName.trim()
+      document.getElementById('mvola-aitel-numero').value = airtelNum.trim()
+    }
+  } catch (err) {
+    console.error('Erreur chargement wallets:', err)
+  }
+}
+
+function isValidBNBAddress(address) {
+  if (!address) return false
+  if (!address.startsWith('0x')) return false
+  if (address.length !== 42) return false
+  // Vérifier que c'est hex valide (0x + 40 caractères hex)
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
+}
+
+async function saveWallets() {
+  try {
+    const axeAddr = document.getElementById('wallet-admin-axe').value.trim()
+    const usdtAddr = document.getElementById('wallet-admin-usdt').value.trim()
+    const feeAddr = document.getElementById('wallet-admin-fee').value.trim()
+    
+    // Concatener Telma
+    const telmaName = document.getElementById('mvola-telma-nom').value.trim()
+    const telmaNum = document.getElementById('mvola-telma-numero').value.trim()
+    const mvolaTelma = telmaName && telmaNum ? `${telmaName} / ${telmaNum}` : ''
+    
+    // Concatener Orange
+    const orangeName = document.getElementById('mvola-orange-nom').value.trim()
+    const orangeNum = document.getElementById('mvola-orange-numero').value.trim()
+    const mvolaOrange = orangeName && orangeNum ? `${orangeName} / ${orangeNum}` : ''
+    
+    // Concatener Airtel
+    const airtelName = document.getElementById('mvola-aitel-nom').value.trim()
+    const airtelNum = document.getElementById('mvola-aitel-numero').value.trim()
+    const mvolaAirtel = airtelName && airtelNum ? `${airtelName} / ${airtelNum}` : ''
+    
+    // Validation
+    if (!axeAddr || !usdtAddr || !feeAddr) {
+      alert('❌ Remplissez toutes les adresses portefeuille')
+      return
+    }
+    
+    if (!isValidBNBAddress(axeAddr)) {
+      alert('❌ Adresse AXE invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
+      return
+    }
+    
+    if (!isValidBNBAddress(usdtAddr)) {
+      alert('❌ Adresse USDT invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
+      return
+    }
+
+    if (!isValidBNBAddress(feeAddr)) {
+      alert('❌ Adresse FEE invalide\n\nFormat: 0x + 40 caractères hexadécimaux\nExemple: 0x742d35Cc6634C0532925a3b844Bc39e7ebf24e53')
+      return
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update({
+        wallet_admin_axe: axeAddr,
+        wallet_admin_usdt: usdtAddr,
+        wallet_admin_fee: feeAddr,
+        telma: mvolaTelma,
+        orange: mvolaOrange,
+        airtel: mvolaAirtel,
+        updated_at: new Date().toISOString(),
+      }).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert
+      const { error } = await sb.from('config').insert({
+        id: 1,
+        wallet_admin_axe: axeAddr,
+        wallet_admin_usdt: usdtAddr,
+        wallet_admin_fee: feeAddr,
+        telma: mvolaTelma,
+        orange: mvolaOrange,
+        airtel: mvolaAirtel,
+      })
+      if (error) throw error
+    }
+    
+    alert('✓ Configurations sauvegardées!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function updateBadges() {
+  try {
+    const { data: depots } = await sb.from('depots').select('id').eq('statut', 'pending')
+    const { data: retraits } = await sb.from('retraits').select('id').eq('statut', 'pending')
+    
+    const depotsCount = depots?.length || 0
+    const retraitsCount = retraits?.length || 0
+    
+    // Afficher/masquer les badges selon le nombre
+    const badgeDepots = document.getElementById('badge-depots')
+    const badgeRetraits = document.getElementById('badge-retraits')
+    
+    if (depotsCount === 0) {
+      badgeDepots.style.display = 'none'
+    } else {
+      badgeDepots.style.display = 'inline-flex'
+      badgeDepots.textContent = depotsCount
+    }
+    
+    if (retraitsCount === 0) {
+      badgeRetraits.style.display = 'none'
+    } else {
+      badgeRetraits.style.display = 'inline-flex'
+      badgeRetraits.textContent = retraitsCount
+    }
+  } catch (err) {
+    console.error('Erreur mise à jour badges:', err)
+  }
+}
+
+async function loadUsers() {
+  try {
+    const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false })
+    if (error) throw error
+    
+    const tbody = document.getElementById('users-table')
+    tbody.innerHTML = (data || []).map(u => `
+      <tr>
+        <td>${u.nom || 'N/A'}</td>
+        <td class="mono">${u.balance_axe || 0} AXE</td>
+        <td class="mono">$${(u.balance_usdt || 0).toFixed(2)}</td>
+        <td class="mono">Ar ${(u.balance_ariary || 0).toLocaleString()}</td>
+        <td class="mono">${u.axe_staked || 0}</td>
+        <td class="mono">${u.total_deposits || 0}</td>
+        <td class="mono">${u.total_withdrawals || 0}</td>
+        <td>${new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status completed">✓ Actif</span></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur chargement utilisateurs:', err)
+  }
+}
+
+async function loadFeeConfig() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('fee-depot').value = data.fee_depot || 2
+      document.getElementById('fee-retrait').value = data.fee_retrait || 3
+      document.getElementById('fee-p2p').value = data.fee_p2p || 1
+      document.getElementById('wallet-admin-fee').value = data.wallet_admin_fee || ''
+    }
+  } catch (err) {
+    console.error('Erreur chargement config frais:', err)
+  }
+}
+
+async function saveFeeConfig() {
+  try {
+    const config = {
+      fee_depot: parseFloat(document.getElementById('fee-depot').value),
+      fee_retrait: parseFloat(document.getElementById('fee-retrait').value),
+      fee_p2p: parseFloat(document.getElementById('fee-p2p').value),
+      wallet_admin_fee: document.getElementById('wallet-admin-fee').value,
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update(config).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert
+      config.id = 1
+      const { error } = await sb.from('config').insert(config)
+      if (error) throw error
+    }
+    
+    alert('✓ Frais et configuration sauvegardés!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function loadWalletsConfig() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('wallet-admin-axe').value = data.wallet_admin_axe || ''
+      document.getElementById('wallet-admin-usdt').value = data.wallet_admin_usdt || ''
+      document.getElementById('wallet-admin-fee').value = data.wallet_admin_fee || ''
+    }
+  } catch (err) {
+    console.error('Erreur chargement config wallets:', err)
+  }
+}
+
+async function saveWalletsConfig() {
+  try {
+    const axeAddr = document.getElementById('wallet-admin-axe').value.trim()
+    const usdtAddr = document.getElementById('wallet-admin-usdt').value.trim()
+    
+    if (!axeAddr || !usdtAddr) {
+      alert('❌ Remplissez tous les champs!')
+      return
+    }
+    
+    // Validation des adresses
+    if (!axeAddr.match(/^0x[0-9a-fA-F]{40}$/)) {
+      alert('❌ Adresse AXE invalide! Format: 0x...')
+      return
+    }
+    if (!usdtAddr.match(/^0x[0-9a-fA-F]{40}$/)) {
+      alert('❌ Adresse USDT invalide! Format: 0x...')
+      return
+    }
+    
+    const config = {
+      wallet_admin_axe: axeAddr,
+      wallet_admin_usdt: usdtAddr,
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update(config).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert
+      config.id = 1
+      const { error } = await sb.from('config').insert(config)
+      if (error) throw error
+    }
+    
+    alert('✓ Wallets admin sauvegardés!')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function loadStakingConfig() {
+  try {
+    // Load APY config for each currency
+    const currencies = ['AXE', 'USDT', 'Ariary']
+    
+    for (const curr of currencies) {
+      const { data, error } = await sb.from('staking_config').select('*').eq('currency', curr).single()
+      
+      if (data) {
+        document.getElementById(`staking-apy-${curr.toLowerCase()}`).value = data.apy || (curr === 'AXE' ? 12 : curr === 'USDT' ? 8 : 5)
+        document.getElementById(`staking-min-${curr.toLowerCase()}`).value = data.min_amount || (curr === 'AXE' ? 100 : curr === 'USDT' ? 10 : 10000)
+        document.getElementById(`staking-max-${curr.toLowerCase()}`).value = data.max_amount || (curr === 'AXE' ? 1000000 : curr === 'USDT' ? 100000 : 50000000)
+      }
+    }
+  } catch (err) {
+    console.error('Erreur chargement config staking:', err)
+  }
+}
+
+async function saveStakingConfig() {
+  try {
+    const currencies = [
+      { name: 'AXE', id: 'axe' },
+      { name: 'USDT', id: 'usdt' },
+      { name: 'Ariary', id: 'ariary' }
+    ]
+    
+    for (const curr of currencies) {
+      const config = {
+        currency: curr.name,
+        apy: parseFloat(document.getElementById(`staking-apy-${curr.id}`).value),
+        min_amount: parseFloat(document.getElementById(`staking-min-${curr.id}`).value),
+        max_amount: parseFloat(document.getElementById(`staking-max-${curr.id}`).value),
+        updated_at: new Date().toISOString()
+      }
+      
+      // Upsert (update or insert)
+      const { error } = await sb.from('staking_config').upsert(config, { onConflict: 'currency' })
+      if (error) throw error
+    }
+    
+    alert('✅ Configuration staking sauvegardée pour toutes les devises!')
+  } catch (err) {
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+async function distributeStakingRewards() {
+  try {
+    const result = confirm('⏳ Distribuer les récompenses de staking horaires à tous les utilisateurs?\n\nCela ne se fait qu\'une fois par heure.')
+    if (!result) return
+    
+    // Call RPC distribution function
+    const { data, error } = await sb.rpc('distribute_staking_rewards')
+    
+    if (error) throw error
+    
+    const result_data = Array.isArray(data) ? data[0] : data
+    const message = `✅ Récompenses distribuées!\n\nTotal: ${(result_data.total_distributed || 0).toFixed(8)} AXE/USDT/Ariary\nPositions récompensées: ${result_data.positions_rewarded || 0}`
+    
+    alert(message)
+    
+    // Update last distribution timestamp
+    document.getElementById('last-distribution').textContent = `✅ ${new Date().toLocaleString('fr-FR')} - ${(result_data.total_distributed || 0).toFixed(2)} distribués`
+    
+  } catch (err) {
+    console.error('Error distributing rewards:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+async function filterRetraits(status, el) {
+  document.querySelectorAll('.table-filters .filter-btn').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  
+  try {
+    let query = sb.from('retraits').select('*, users(nom)').order('created_at', { ascending: false })
+    
+    if (status !== 'all') {
+      query = query.eq('statut', status)
+    }
+    
+    const { data, error } = await query
+    if (error) throw error
+    
+    const tbody = document.getElementById('retraits-table')
+    tbody.innerHTML = (data || []).map(d => `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">${d.axe_envoye || 0} AXE</td>
+        <td class="mono">Ar ${d.montant_ariary?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${d.frais?.toLocaleString() || 0}</td>
+        <td class="mono">${d.mvola || 'N/A'}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status ${d.statut}">${d.statut === 'pending' ? '⏳ En attente' : '✓ Traité'}</span></td>
+        <td><button class="btn btn-view" onclick="viewRetrait('${d.id}')">Voir</button></td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Erreur filtrage retraits:', err)
+  }
+}
+
+function filterTable(tableId, search) {
+  const table = document.getElementById(tableId)
+  if (!table) return
+  
+  const rows = table.querySelectorAll('tbody tr')
+  const searchLower = search.toLowerCase()
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase()
+    if (text.includes(searchLower)) {
+      row.style.display = ''
+    } else {
+      row.style.display = 'none'
+    }
+  })
+}
+
+async function saveFees() {
+  try {
+    const configData = {
+      fee_depot: parseFloat(document.getElementById('fee-depot').value),
+      fee_retrait: parseFloat(document.getElementById('fee-retrait').value),
+      fee_p2p: parseFloat(document.getElementById('fee-p2p').value),
+      fee_convert: parseFloat(document.getElementById('fee-convert').value),
+      rate_axe_ariary: parseFloat(document.getElementById('rate-axe-ariary').value),
+      rate_axe_usdt: parseFloat(document.getElementById('rate-axe-usdt').value),
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Vérifier si la config existe
+    const { data: existing } = await sb.from('config').select('id').eq('id', 1).single()
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('config').update(configData).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert avec id=1
+      const { error } = await sb.from('config').insert({
+        id: 1,
+        ...configData
+      })
+      if (error) throw error
+    }
+    
+    alert('✓ Frais et taux sauvegardés!\n\n🔄 Dashboard mis à jour...')
+    
+    // Rafraîchir IMMÉDIATEMENT le dashboard
+    await loadDashboardStats()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function saveStakingConfig() {
+  try {
+    const configData = {
+      apy_flexible: parseFloat(document.getElementById('staking-apy-flexible').value),
+      apy_fixed: parseFloat(document.getElementById('staking-apy-fixed').value),
+      bonus_multiplier: parseFloat(document.getElementById('staking-bonus-multiplier').value),
+      min_amount: parseFloat(document.getElementById('staking-min-amount').value),
+      durations: {
+        "7": {
+          enabled: document.getElementById('duration-7').checked,
+          apy: parseFloat(document.getElementById('duration-7-apy').value)
+        },
+        "14": {
+          enabled: document.getElementById('duration-14').checked,
+          apy: parseFloat(document.getElementById('duration-14-apy').value)
+        },
+        "30": {
+          enabled: document.getElementById('duration-30').checked,
+          apy: parseFloat(document.getElementById('duration-30-apy').value)
+        },
+        "60": {
+          enabled: document.getElementById('duration-60').checked,
+          apy: parseFloat(document.getElementById('duration-60-apy').value)
+        },
+        "90": {
+          enabled: document.getElementById('duration-90').checked,
+          apy: parseFloat(document.getElementById('duration-90-apy').value)
+        }
+      },
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Vérifier si la config staking existe
+    const { data: existing } = await sb.from('staking_config').select('id').eq('id', 1).single().catch(() => ({}))
+    
+    if (existing) {
+      // Update
+      const { error } = await sb.from('staking_config').update(configData).eq('id', 1)
+      if (error) throw error
+    } else {
+      // Insert avec id=1
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "currency",
+    "data_type": "character varying",
+    "is_nullable": "NO"
+  },
+  {
+    "column_name": "apy",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "min_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "max_amount",
+    "data_type": "numeric",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp without time zone",
+    "is_nullable": "YES"
+  },
+  {
+    "column_name": "updated_by",
+    "data_type": "uuid",
+    "is_nullable": "YES"
+  }
+]V      const { error } = await sb.from('staking_config').insert({
+        id: 1,
+        ...configData
+      })
+      if (error) throw error
+    }
+    
+    alert('✓ Configuration Staking sauvegardée!\n\n🔄 Synchronisation avec l\'app...')
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function loadStakingConfig() {
+  try {
+    const { data, error } = await sb.from('staking_config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('staking-apy-flexible').value = data.apy_flexible || 12
+      document.getElementById('staking-apy-fixed').value = data.apy_fixed || 18
+      document.getElementById('staking-bonus-multiplier').value = data.bonus_multiplier || 1.5
+      document.getElementById('staking-min-amount').value = data.min_amount || 100
+      
+      if (data.durations) {
+        const durations = data.durations
+        ['7', '14', '30', '60', '90'].forEach(d => {
+          if (durations[d]) {
+            document.getElementById(`duration-${d}`).checked = durations[d].enabled
+            document.getElementById(`duration-${d}-apy`).value = durations[d].apy
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.error('Erreur chargement config staking:', err)
+  }
+}
+
+function closeModal() {
+  document.getElementById('transaction-modal').style.display = 'none'
+  currentId = null
+}
+
+async function approveDepot(id) {
+  if (!confirm('Approuver ce dépôt et collecter les frais ?')) return
+  
+  try {
+    // Get depot details to get user_id and montant_ariary
+    const { data: depot, error: fetchError } = await sb.from('depots').select('user_id, montant_ariary').eq('id', id).single()
+    if (fetchError) throw fetchError
+    
+    // Get fee percentage from config
+    const { data: config } = await sb.from('config').select('fee_depot').eq('id', 1).single()
+    const feePct = config?.fee_depot || 2
+    
+    // Call RPC to approve and collect fee
+    const { data: result, error: rpcError } = await sb.rpc('approve_depot_with_fee', {
+      p_depot_id: id,
+      p_user_id: depot.user_id,
+      p_montant_ariary: depot.montant_ariary,
+      p_fee_percentage: feePct
+    })
+    
+    if (rpcError) throw rpcError
+    if (!result.success) throw new Error(result.error)
+    
+    // Send fees to wallet asynchronously (non-blocking)
+    if (result.fee_amount > 0) {
+      sendFeesToWallet(result.fee_amount).catch(err => console.error('Error sending fees:', err))
+    }
+    
+    alert(`✓ Dépôt approuvé!\n💰 Frais collectés: ${result.fee_amount.toFixed(8)} AXE`)
+    closeModal()
+    await loadDepots()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function approveDepotAriary(transactionId) {
+  if (!confirm('Approuver ce dépôt Ariary et créditer l\'utilisateur ?')) return
+  
+  try {
+    // Get transaction details
+    const { data: tx, error: txError } = await sb.from('transactions').select('*').eq('id', transactionId).single()
+    if (txError) throw txError
+    
+    // Calculate AXE to credit (divide by exchange rate, no fee for Ariary deposits)
+    const axeToCredit = parseFloat((tx.montant / 220).toFixed(8))
+    
+    // Update transaction status
+    const { error: updateError } = await sb.from('transactions')
+      .update({ 
+        statut: 'completed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', transactionId)
+    
+    if (updateError) throw updateError
+    
+    // Credit user balance
+    const { error: creditError } = await sb.rpc('credit_user_balance', {
+      p_user_id: tx.user_id,
+      p_amount_axe: axeToCredit
+    }).catch(async () => {
+      // If RPC doesn't exist, do it manually
+      const { data: user, error: userError } = await sb.from('users').select('balance_axe').eq('id', tx.user_id).single()
+      if (userError) throw userError
+      
+      const newBalance = (parseFloat(user.balance_axe) + axeToCredit)
+      const { error: balError } = await sb.from('users').update({ balance_axe: newBalance }).eq('id', tx.user_id)
+      if (balError) throw balError
+      
+      return { error: null }
+    })
+    
+    if (creditError) console.error('Credit error:', creditError)
+    
+    alert(`✓ Dépôt approuvé!\n📊 ${axeToCredit} AXE crédité à l'utilisateur`)
+    closeModal()
+    await loadDepots()
+    await updateBadges()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function rejectDepotAriary(transactionId) {
+  if (!confirm('Rejeter ce dépôt Ariary ?')) return
+  
+  try {
+    // Update transaction status
+    const { error: updateError } = await sb.from('transactions')
+      .update({ 
+        statut: 'rejected',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', transactionId)
+    
+    if (updateError) throw updateError
+    
+    alert(`✕ Dépôt rejeté`)
+    closeModal()
+    await loadDepots()
+    await updateBadges()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function approveRetrait(id) {
+  if (!confirm('Approuver ce retrait et collecter les frais ?')) return
+  
+  try {
+    // Get retrait details
+    const { data: retrait, error: fetchError } = await sb.from('retraits').select('user_id, montant_ariary').eq('id', id).single()
+    if (fetchError) throw fetchError
+    
+    // Get fee percentage from config
+    const { data: config } = await sb.from('config').select('fee_retrait').eq('id', 1).single()
+    const feePct = config?.fee_retrait || 3
+    
+    // Call RPC to approve and collect fee
+    const { data: result, error: rpcError } = await sb.rpc('approve_retrait_with_fee', {
+      p_retrait_id: id,
+      p_user_id: retrait.user_id,
+      p_montant_ariary: retrait.montant_ariary,
+      p_fee_percentage: feePct
+    })
+    
+    if (rpcError) throw rpcError
+    if (!result.success) throw new Error(result.error)
+    
+    // Send fees to wallet asynchronously
+    if (result.fee_amount > 0) {
+      sendFeesToWallet(result.fee_amount).catch(err => console.error('Error sending fees:', err))
+    }
+    
+    alert(`✓ Retrait approuvé!\n💰 Frais collectés: ${result.fee_amount.toFixed(8)} AXE`)
+    closeModal()
+    await loadRetraits()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function completeRetrait(id) {
+  if (!confirm('Marquer ce retrait comme envoyé ?')) return
+  
+  try {
+    const { error } = await sb.from('retraits').update({ statut: 'completed' }).eq('id', id)
+    if (error) throw error
+    
+    alert('✓ Retrait marqué comme envoyé!')
+    closeModal()
+    await loadRetraits()
+    await updateBadges()
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+// Send accumulated fees to wallet_admin_fee on blockchain
+async function sendFeesToWallet(amountAXE) {
+  try {
+    // Get wallet admin fee address from config
+    const { data: config } = await sb.from('config').select('wallet_admin_fee').eq('id', 1).single()
+    if (!config?.wallet_admin_fee) {
+      console.warn('wallet_admin_fee not configured')
+      return
+    }
+    
+    // Note: This is a backend operation that would be done by a secure service
+    // For now, we just log it and it can be picked up by a cron job
+    console.log(`Fees: ${amountAXE} AXE → ${config.wallet_admin_fee}`)
+    
+    // TODO: In production, call a secure backend endpoint that:
+    // 1. Uses wallet_admin_fee private key (stored securely on backend)
+    // 2. Sends the AXE to wallet_admin_fee wallet
+    // 3. Records the tx hash in fees_collected table
+  } catch (err) {
+    console.error('Error sending fees:', err)
+  }
+}
+
+async function loadFees() {
+  try {
+    const { data, error } = await sb.from('config').select('*').eq('id', 1).single()
+    if (error && error.code !== 'PGRST116') throw error
+    
+    if (data) {
+      document.getElementById('fee-depot').value = data.fee_depot || 2
+      document.getElementById('fee-retrait').value = data.fee_retrait || 3
+      document.getElementById('fee-p2p').value = data.fee_p2p || 1
+      document.getElementById('fee-convert').value = data.fee_convert || 1
+      document.getElementById('rate-axe-ariary').value = data.rate_axe_ariary || 220
+      document.getElementById('rate-axe-usdt').value = data.rate_axe_usdt || 0.045
+    }
+  } catch (err) {
+    console.error('Erreur chargement frais:', err)
+  }
+}
+
+// Switch between deposit tabs (USDT, Ariary)
+function switchDepositTab(tabType, el) {
+  // Update button styles
+  document.querySelectorAll('[id^="tab-deposit-"]').forEach(btn => {
+    btn.style.background = 'transparent'
+    btn.style.borderBottom = 'none'
+  })
+  el.style.background = 'rgba(59,130,246,0.15)'
+  el.style.borderBottom = '3px solid var(--blue)'
+  
+  // Hide/show containers
+  document.getElementById('deposit-usdt-container').style.display = tabType === 'usdt' ? 'block' : 'none'
+  document.getElementById('deposit-ariary-container').style.display = tabType === 'ariary' ? 'block' : 'none'
+}
+
+// Switch between withdrawal tabs (Ariary)
+function switchWithdrawalTab(tabType, el) {
+  // Update button styles
+  document.querySelectorAll('[id^="tab-withdrawal-"]').forEach(btn => {
+    btn.style.background = 'transparent'
+    btn.style.borderBottom = 'none'
+  })
+  el.style.background = 'rgba(59,130,246,0.15)'
+  el.style.borderBottom = '3px solid var(--blue)'
+  
+  // Hide/show containers
+  document.getElementById('withdrawal-ariary-container').style.display = tabType === 'ariary' ? 'block' : 'none'
+}
+
+// Load USDT Deposits pending approval
+async function loadDepositUSDT() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*, users(nom)')
+      .eq('type', 'deposit_usdt_request')
+      .eq('statut', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('depots-usdt-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--sub);">Aucun dépôt USDT en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => {
+      return `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">$${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">--</td>
+        <td class="mono">$${d.montant?.toLocaleString() || 0}</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveDepositUSDT('${d.id}')">✓ Approuver</button>
+        </td>
+      </tr>
+    `
+    }).join('')
+  } catch (err) {
+    console.error('Erreur chargement dépôts USDT:', err)
+  }
+}
+
+// Approve USDT Deposit
+async function approveDepositUSDT(transactionId) {
+  if (!confirm(`Confirmer le dépôt USDT? L'utilisateur sera crédité immédiatement.`)) return
+  
+  try {
+    const { data: result, error: rpcError } = await sb.rpc('approve_deposit_usdt', {
+      transaction_id: transactionId,
+      admin_fee_percentage: 0
+    })
+    
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw rpcError
+    }
+    
+    if (!result?.success) {
+      throw new Error(result?.error || 'Approval failed')
+    }
+    
+    alert(`✓ Dépôt USDT approuvé!
+    
+💵 Montant USDT: $${result.amount_credited?.toLocaleString()}
+✅ Utilisateur crédité!`)
+    
+    // Refresh all data
+    await loadDepositUSDT()
+    await loadDashboardStats()
+    await updateBadges()
+  } catch (err) {
+    console.error('Approval error:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// Load Ariary Withdrawals pending approval
+async function loadWithdrawalAriary() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*, users(nom)')
+      .eq('type', 'withdrawal_ariary_request')
+      .eq('statut', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('retraits-ariary-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--sub);">Aucun retrait Ariary en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => {
+      const metadata = d.metadata || {}
+      const feeAriary = metadata.fee_ariary || 0
+      const toSend = d.montant - feeAriary
+      return `
+      <tr>
+        <td>${d.users?.nom || 'N/A'}</td>
+        <td class="mono">Ar ${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${feeAriary?.toLocaleString() || 0}</td>
+        <td class="mono">Ar ${toSend?.toLocaleString()}</td>
+        <td class="mono">${metadata.mvola_number || 'N/A'}</td>
+        <td>
+          <select id="operator-${d.id}" style="padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:12px; cursor:pointer;">
+            <option value="" disabled ${!metadata.mvola_operator || metadata.mvola_operator === '' ? 'selected' : ''}>Choisissez votre opérateur</option>
+            <option value="Orange" ${metadata.mvola_operator === 'Orange' ? 'selected' : ''}>🟠 Orange</option>
+            <option value="Airtel" ${metadata.mvola_operator === 'Airtel' ? 'selected' : ''}>🔵 Airtel</option>
+            <option value="Telma" ${metadata.mvola_operator === 'Telma' ? 'selected' : ''}>🟢 Telma</option>
+          </select>
+        </td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveWithdrawalAriaryWithOperator('${d.id}', '${metadata.mvola_number}')">✓ Approuver</button>
+        </td>
+      </tr>
+    `
+    }).join('')
+  } catch (err) {
+    console.error('Erreur chargement retraits Ariary:', err)
+  }
+}
+
+// Approve Ariary Withdrawal with operator selection
+async function approveWithdrawalAriaryWithOperator(transactionId, mvolaNumber) {
+  // Get selected operator from dropdown
+  const operatorSelect = document.getElementById(`operator-${transactionId}`)
+  const selectedOperator = operatorSelect?.value || 'Orange'
+  
+  if (!confirm(`Confirmer le retrait Ariary via ${selectedOperator}? L'utilisateur sera débité et vous devez envoyer le Mvola.`)) return
+  
+  try {
+    const { data: result, error: rpcError } = await sb.rpc('approve_withdrawal_ariary', {
+      transaction_id: transactionId
+    })
+    
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw rpcError
+    }
+    
+    if (!result?.success) {
+      throw new Error(result?.error || 'Approval failed')
+    }
+    
+    alert(`✓ Retrait Ariary approuvé!
+    
+💸 Montant: Ar ${result.amount_withdrawn?.toLocaleString()}
+📱 Mvola: ${result.mvola_number} (${selectedOperator})
+💰 À envoyer: Ar ${(result.amount_withdrawn - result.fee_collected)?.toLocaleString()}
+✅ Utilisateur débité!
+
+⚠️ Envoyez le montant au numéro Mvola indiqué via ${selectedOperator}.`)
+    
+    // Refresh all data
+    await loadWithdrawalAriary()
+    await loadDashboardStats()
+    await updateBadges()
+  } catch (err) {
+    console.error('Approval error:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// Keep old function for backward compatibility
+async function approveWithdrawalAriary(transactionId) {
+  // Get the metadata from the row to find mvola number
+  const row = event.target?.closest('tr')
+  if (!row) {
+    await approveWithdrawalAriaryWithOperator(transactionId, '')
+    return
+  }
+  const mvolaNumber = row.children[4]?.textContent || ''
+  await approveWithdrawalAriaryWithOperator(transactionId, mvolaNumber)
+}
+
+function switchPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+  document.getElementById(`page-${page}`).classList.add('active')
+  el.classList.add('active')
+  
+  // Charger les données selon la page
+  if (page === 'wallets') {
+    loadWallets()
+  } else if (page === 'frais') {
+    loadFeeConfig()
+  } else if (page === 'staking') {
+    loadStakingConfig()
+  } else if (page === 'taux') {
+    loadRates()
+  } else if (page === 'utilisateurs') {
+    loadUsers()
+  } else if (page === 'staking') {
+    loadStakingConfig()
+  } else if (page === 'transactions') {
+    loadTransactions()
+  } else if (page === 'depots') {
+    loadDepositUSDT()
+  } else if (page === 'retraits') {
+    loadWithdrawalAriary()
+  }
+}
+
+// Switch between P2P transaction tabs (Ariary, USDT, AXE)
+function switchP2PTab(tabType, el) {
+  // Update button styles
+  document.querySelectorAll('[id^="tab-p2p-"]').forEach(btn => {
+    btn.style.background = 'transparent'
+    btn.style.color = 'var(--text)'
+    btn.style.borderBottom = 'none'
+  })
+  el.style.background = 'rgba(59,130,246,0.15)'
+  el.style.borderBottom = '3px solid var(--blue)'
+  
+  // Hide/show containers
+  document.getElementById('p2p-ariary-container').style.display = tabType === 'ariary' ? 'block' : 'none'
+  document.getElementById('p2p-usdt-container').style.display = tabType === 'usdt' ? 'block' : 'none'
+  document.getElementById('p2p-axe-container').style.display = tabType === 'axe' ? 'block' : 'none'
+}
+
+// Load P2P USDT transactions
+async function loadP2PUSDT() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*')
+      .eq('type', 'p2p_usdt_request')
+      .eq('statut', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('p2p-usdt-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--sub);">Aucune transaction USDT en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => {
+      const metadata = d.metadata || {}
+      const feeAxe = metadata.fee_in_axe || 0
+      return `
+      <tr>
+        <td class="mono">${d.id.substring(0, 8)}</td>
+        <td class="mono">$${d.montant?.toLocaleString() || 0}</td>
+        <td class="mono">${feeAxe?.toFixed(8) || 0} AXE</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveP2PUSDT('${d.id}')">✓ Approuver</button>
+        </td>
+      </tr>
+    `
+    }).join('')
+  } catch (err) {
+    console.error('Erreur chargement P2P USDT:', err)
+  }
+}
+
+// Load P2P AXE transactions
+async function loadP2PAXE() {
+  try {
+    const { data, error } = await sb.from('transactions')
+      .select('*')
+      .eq('type', 'p2p_axe_request')
+      .eq('statut', 'pending_approval')
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('p2p-axe-table')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--sub);">Aucune transaction AXE en attente</td></tr>'
+      return
+    }
+    
+    tbody.innerHTML = (data || []).map(d => {
+      const metadata = d.metadata || {}
+      const feeAxe = metadata.fee_in_axe || 0
+      return `
+      <tr>
+        <td class="mono">${d.id.substring(0, 8)}</td>
+        <td class="mono">${d.montant?.toLocaleString() || 0} AXE</td>
+        <td class="mono">${feeAxe?.toFixed(8) || 0} AXE</td>
+        <td>${new Date(d.created_at).toLocaleDateString('fr-FR')}</td>
+        <td><span class="status pending">⏳ En attente</span></td>
+        <td>
+          <button class="btn btn-approve" onclick="approveP2PAXE('${d.id}')">✓ Approuver</button>
+        </td>
+      </tr>
+    `
+    }).join('')
+  } catch (err) {
+    console.error('Erreur chargement P2P AXE:', err)
+  }
+}
+
+// ============================================================================
+// FEE MANAGEMENT DASHBOARD
+// ============================================================================
+
+// Load fee statistics
+async function loadFeeStats(period = 'today') {
+  try {
+    const { data, error } = await sb.rpc('get_fee_stats', { p_period: period })
+    
+    if (error) throw error
+    
+    const stats = Array.isArray(data) ? data[0] : data;
+    if (!stats) {
+      console.warn('No fee stats returned')
+      return
+    }
+
+    // Update stat cards
+    const statKey = period === 'today' ? 'today' : period === 'week' ? 'week' : period === 'month' ? 'month' : 'all'
+    document.getElementById(`stat-${statKey}`).textContent = (stats.total_collected || 0).toFixed(2)
+    document.getElementById(`stat-${statKey}-count`).textContent = (stats.total_count || 0) + ' transactions'
+
+    // Update breakdown by type
+    const byType = stats.by_type || {}
+    let typeHtml = '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">'
+    for (const [type, amount] of Object.entries(byType)) {
+      typeHtml += `
+        <div style="background: rgba(59,130,246,0.05); padding: 12px; border-radius: 8px; border-left: 3px solid var(--blue);">
+          <div style="font-size: 11px; color: var(--sub); margin-bottom: 4px;">${type}</div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--gold);">${parseFloat(amount).toFixed(8)}</div>
+        </div>
+      `
+    }
+    typeHtml += '</div>'
+    document.getElementById('fee-by-type-container').innerHTML = typeHtml || '<div style="text-align: center; color: var(--sub);">Aucun frais collecté</div>'
+
+    // Update breakdown by currency
+    const byCurrency = stats.by_currency || {}
+    let currencyHtml = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">'
+    for (const [currency, amount] of Object.entries(byCurrency)) {
+      currencyHtml += `
+        <div style="background: rgba(34,197,94,0.05); padding: 12px; border-radius: 8px; border-left: 3px solid var(--green);">
+          <div style="font-size: 11px; color: var(--sub); margin-bottom: 4px;">${currency}</div>
+          <div style="font-size: 14px; font-weight: 700; color: var(--green);">${parseFloat(amount).toFixed(8)}</div>
+        </div>
+      `
+    }
+    currencyHtml += '</div>'
+    document.getElementById('fee-by-currency-container').innerHTML = currencyHtml || '<div style="text-align: center; color: var(--sub);">Aucun frais collecté</div>'
+
+    // Load recent transactions
+    await loadRecentFeeTransactions()
+  } catch (err) {
+    console.error('Error loading fee stats:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// Load recent fee transactions
+async function loadRecentFeeTransactions() {
+  try {
+    const { data, error } = await sb.rpc('get_recent_fee_transactions', { p_limit: 20 })
+    
+    if (error) throw error
+    
+    const tbody = document.getElementById('recent-fees-tbody')
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--sub);">Aucun frais collecté</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = (data || []).map(tx => `
+      <tr>
+        <td>${tx.fee_type}</td>
+        <td class="mono">${parseFloat(tx.amount).toFixed(8)}</td>
+        <td>${tx.currency}</td>
+        <td>${tx.percentage ? (tx.percentage * 100).toFixed(2) + '%' : '-'}</td>
+        <td>${tx.user_display_id || 'N/A'}</td>
+        <td class="mono">${new Date(tx.collected_at).toLocaleString('fr-FR')}</td>
+      </tr>
+    `).join('')
+  } catch (err) {
+    console.error('Error loading recent transactions:', err)
+  }
+}
+
+// Load current fee config into inputs
+async function loadFeeConfig() {
+  try {
+    const { data, error } = await sb.rpc('get_fee_config')
+    
+    if (error) throw error
+    
+    const config = Array.isArray(data) ? data[0] : data;
+    if (!config) return
+    
+    // Fill in all input fields
+    document.getElementById('fee_p2p_axe').value = (config.fee_p2p_axe * 100).toFixed(2)
+    document.getElementById('fee_p2p_usdt').value = (config.fee_p2p_usdt * 100).toFixed(2)
+    document.getElementById('fee_p2p_ariary').value = (config.fee_p2p_ariary * 100).toFixed(2)
+    
+    document.getElementById('fee_deposit_axe').value = (config.fee_deposit_axe * 100).toFixed(2)
+    document.getElementById('fee_deposit_usdt').value = (config.fee_deposit_usdt * 100).toFixed(2)
+    document.getElementById('fee_deposit_ariary').value = (config.fee_deposit_ariary * 100).toFixed(2)
+    
+    document.getElementById('fee_withdraw_axe').value = (config.fee_withdraw_axe * 100).toFixed(2)
+    document.getElementById('fee_withdraw_usdt').value = (config.fee_withdraw_usdt * 100).toFixed(2)
+    document.getElementById('fee_withdraw_ariary').value = (config.fee_withdraw_ariary * 100).toFixed(2)
+    
+    document.getElementById('fee_convert').value = (config.fee_convert * 100).toFixed(2)
+    
+    // Load stats on page load
+    await loadFeeStats('today')
+    
+    // Load fee collection interval configuration
+    await loadFeeCollectionInterval()
+  } catch (err) {
+    console.error('Error loading fee config:', err)
+  }
+}
+
+// Reset all fee inputs to current values from DB
+async function resetFeeInputs() {
+  await loadFeeConfig()
+  alert('✓ Réinitialisé aux valeurs actuelles')
+}
+
+// Load fee collection interval from config
+async function loadFeeCollectionInterval() {
+  try {
+    const { data, error } = await sb.rpc('get_fee_collection_interval')
+    
+    if (error || !data) {
+      console.error('Error loading fee collection interval:', error)
+      return
+    }
+    
+    const result = Array.isArray(data) ? data[0] : data
+    const intervalMinutes = result.interval_minutes
+    const intervalHours = result.interval_hours
+    
+    // Update display
+    document.getElementById('current-interval-display').textContent = 
+      intervalMinutes >= 60 
+        ? `${intervalHours} heure(s)` 
+        : `${intervalMinutes} minute(s)`
+    
+    // Update next processing time
+    const nextTime = new Date(result.next_processing_at)
+    document.getElementById('next-processing-time').textContent = 
+      nextTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    
+    // Highlight active button
+    document.querySelectorAll('.fee-interval-btn').forEach(btn => {
+      const btnInterval = parseInt(btn.getAttribute('data-interval'))
+      if (btnInterval === intervalMinutes) {
+        btn.style.background = 'rgba(34,197,94,0.15)'
+        btn.style.color = 'var(--green)'
+        btn.style.borderColor = 'rgba(34,197,94,0.3)'
+      } else {
+        btn.style.background = 'transparent'
+        btn.style.color = 'var(--sub)'
+        btn.style.borderColor = 'var(--border)'
+      }
+    })
+  } catch (err) {
+    console.error('Error loading fee collection interval:', err)
+  }
+}
+
+// Set fee collection interval
+async function setFeeCollectionInterval(intervalMinutes) {
+  if (!confirm(`⚠️ Changer le rythme de collecte des frais à ${intervalMinutes >= 60 ? (intervalMinutes/60).toFixed(0) + 'h' : intervalMinutes + ' min'}?`)) {
+    return
+  }
+  
+  try {
+    const { data, error } = await sb.rpc('update_fee_collection_interval', {
+      p_interval_minutes: intervalMinutes
+    })
+    
+    if (error) {
+      console.error('Error updating fee collection interval:', error)
+      alert('❌ Erreur: ' + (error.message || 'Impossible de mettre à jour l\'intervalle'))
+      return
+    }
+    
+    const result = Array.isArray(data) ? data[0] : data
+    
+    if (result.success) {
+      alert(`✓ Intervalle mis à jour\n\n${result.message}`)
+      await loadFeeCollectionInterval()
+    } else {
+      alert('❌ Erreur: ' + result.message)
+    }
+  } catch (err) {
+    console.error('Error setting fee collection interval:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// Apply all fee changes
+async function applyAllFeeChanges() {
+  if (!confirm('⚠️ Appliquer tous les changements de frais? Les utilisateurs verront les nouveaux pourcentages immédiatement.')) {
+    return
+  }
+
+  const changes = [
+    { key: 'fee_p2p_axe', input: 'fee_p2p_axe' },
+    { key: 'fee_p2p_usdt', input: 'fee_p2p_usdt' },
+    { key: 'fee_p2p_ariary', input: 'fee_p2p_ariary' },
+    { key: 'fee_deposit_axe', input: 'fee_deposit_axe' },
+    { key: 'fee_deposit_usdt', input: 'fee_deposit_usdt' },
+    { key: 'fee_deposit_ariary', input: 'fee_deposit_ariary' },
+    { key: 'fee_withdraw_axe', input: 'fee_withdraw_axe' },
+    { key: 'fee_withdraw_usdt', input: 'fee_withdraw_usdt' },
+    { key: 'fee_withdraw_ariary', input: 'fee_withdraw_ariary' },
+    { key: 'fee_convert', input: 'fee_convert' },
+  ]
+
+  let successCount = 0
+  let errorCount = 0
+
+  for (const change of changes) {
+    try {
+      const inputValue = parseFloat(document.getElementById(change.input).value) / 100
+      
+      if (isNaN(inputValue) || inputValue < 0 || inputValue > 1) {
+        console.warn(`Invalid value for ${change.key}`)
+        errorCount++
+        continue
+      }
+
+      const { error } = await sb.rpc('update_fee_percentage', {
+        p_fee_key: change.key,
+        p_new_percentage: inputValue
+      })
+
+      if (error) {
+        console.error(`Error updating ${change.key}:`, error)
+        errorCount++
+      } else {
+        successCount++
+      }
+    } catch (err) {
+      console.error(`Exception updating ${change.key}:`, err)
+      errorCount++
+    }
+  }
+
+  alert(`✅ Frais mis à jour!\n\n✓ ${successCount} paramètres mis à jour\n❌ ${errorCount} erreurs\n\nLes utilisateurs verront les nouveaux frais immédiatement.`)
+  
+  // Reload stats
+  await loadFeeStats('today')
+}
+
+</script>
+</body>
+</html>
+
+
+// Approve P2P USDT transaction
+async function approveP2PUSDT(transactionId) {
+  if (!confirm(`Approuver cette transaction P2P USDT? Les balances seront mises à jour et les frais collectés.`)) return
+  
+  try {
+    const { data: result, error: rpcError } = await sb.rpc('approve_p2p_usdt', {
+      transaction_id: transactionId
+    })
+    
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw rpcError
+    }
+    
+    if (!result?.success) {
+      throw new Error(result?.error || 'Approval failed')
+    }
+    
+    alert(`✓ P2P USDT approuvé!
+    
+💵 Montant: $${result.montant_usdt?.toLocaleString()}
+💸 Frais AXE: ${result.fee_in_axe?.toFixed(8)}
+✅ Balances mises à jour!`)
+    
+    // Refresh all P2P data
+    await loadP2PAriary()
+    await loadP2PUSDT()
+    await loadP2PAXE()
+    await loadTransactions()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    console.error('Approval error:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// Approve P2P AXE transaction
+async function approveP2PAXE(transactionId) {
+  if (!confirm(`Approuver cette transaction P2P AXE? Les balances seront mises à jour et les frais collectés.`)) return
+  
+  try {
+    const { data: result, error: rpcError } = await sb.rpc('approve_p2p_axe', {
+      transaction_id: transactionId
+    })
+    
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw rpcError
+    }
+    
+    if (!result?.success) {
+      throw new Error(result?.error || 'Approval failed')
+    }
+    
+    alert(`✓ P2P AXE approuvé!
+    
+🪙 Montant: ${result.montant_axe?.toLocaleString()} AXE
+💸 Frais AXE: ${result.fee_in_axe?.toFixed(8)}
+✅ Balances mises à jour!`)
+    
+    // Refresh all P2P data
+    await loadP2PAriary()
+    await loadP2PUSDT()
+    await loadP2PAXE()
+    await loadTransactions()
+    await updateBadges()
+    await loadDashboardStats()
+  } catch (err) {
+    console.error('Approval error:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+// ============================================================================
+// CONFIG TAUX (EXCHANGE RATES)
+// ============================================================================
+
+// Load all exchange rates from database
+async function loadRates() {
+  try {
+    const { data, error } = await supabase.rpc('get_all_rates')
+    
+    if (error) throw error
+    
+    // Display rates in UI
+    document.getElementById('rate-axe-ariary-display').textContent = (data.AXE_ARIARY || 220).toFixed(2)
+    document.getElementById('rate-axe-usdt-display').textContent = (data.AXE_USDT || 0.045).toFixed(6)
+    document.getElementById('rate-usdt-ariary-display').textContent = (data.USDT_ARIARY || 4889).toFixed(2)
+    
+    // Clear input fields
+    document.getElementById('rate-axe-ariary-input').value = ''
+    document.getElementById('rate-axe-usdt-input').value = ''
+    document.getElementById('rate-usdt-ariary-input').value = ''
+    
+    console.log('✅ Rates loaded:', data)
+  } catch (err) {
+    console.error('Error loading rates:', err)
+    alert('❌ Erreur lors du chargement des taux: ' + err.message)
+  }
+}
+
+// Update a single exchange rate
+async function updateRate(currencyFrom, currencyTo, inputId) {
+  try {
+    const newRate = parseFloat(document.getElementById(inputId).value)
+    
+    if (!newRate || newRate <= 0) {
+      alert('⚠️ Veuillez entrer un taux valide')
+      return
+    }
+    
+    // Get current admin user ID (you may need to adjust this)
+    const { data: { user } } = await supabase.auth.getUser()
+    const adminId = user?.id || '00000000-0000-0000-0000-000000000000'
+    
+    // Call update RPC
+    const { data, error } = await supabase.rpc('update_rate', {
+      currency_from: currencyFrom,
+      currency_to: currencyTo,
+      new_rate: newRate,
+      admin_id: adminId
+    })
+    
+    if (error) throw error
+    
+    // Show success message
+    alert(`✅ Taux ${currencyFrom}→${currencyTo} mis à jour: ${newRate}`)
+    
+    // Reload rates to refresh display
+    setTimeout(() => loadRates(), 1000)
+    
+  } catch (err) {
+    console.error('Error updating rate:', err)
+    alert('❌ Erreur: ' + err.message)
+  }
+}
+
+</script>
+</body>
+</html>

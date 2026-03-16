@@ -1,0 +1,101 @@
+/* Sidebar Navigation */
+.logo {
+  padding: 0 var(--spacing-2xl) var(--spacing-2xl);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--sub);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.nav {
+  flex: 1;
+  padding: var(--spacing-md);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub);
+  transition: all var(--transition-fast);
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+}
+
+.nav-item:hover {
+  background: var(--card);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(240, 180, 41, 0.15), rgba(240, 180, 41, 0.05));
+  color: var(--gold);
+  border-color: rgba(240, 180, 41, 0.2);
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.badge {
+  margin-left: auto;
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-family: var(--mono);
+}
+
+.sidebar-footer {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  border-top: 1px solid var(--border);
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--gold), #e07b00);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #000;
+}
+
+.admin-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-role {
+  font-size: 10px;
+  color: var(--sub);
+  font-family: var(--mono);
+}
