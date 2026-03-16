@@ -37,6 +37,7 @@
     <nav class="nav">
       <div class="nav-item" onclick="switchPage('account-info', this)">ℹ️ Information du compte</div>
       <div class="nav-item active" onclick="switchPage('dashboard', this)">📊 Dashboard</div>
+      <div class="nav-item" onclick="switchPage('analytics', this)">📈 Analytics +</div>
       <div class="nav-item" onclick="switchPage('depots', this)">📥 Dépôts <span class="badge" id="badge-depots">0</span></div>
       <div class="nav-item" onclick="switchPage('retraits', this)">📤 Retraits <span class="badge" id="badge-retraits">0</span></div>
       <div class="nav-item" onclick="switchPage('transactions', this)">💱 Transactions</div>
@@ -121,6 +122,100 @@
               <div style="font-size: 16px; font-weight: 700; color: var(--purple);" id="fees-alltime">-- AXE</div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analytics Page -->
+    <div class="page" id="page-analytics">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📈 Analytics Avancée</div>
+          <div class="page-sub">Graphiques détaillés et exports</div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-primary" onclick="exportToCSV('depots', 'month')" style="font-size: 12px;">📥 Export Dépôts</button>
+          <button class="btn btn-primary" onclick="exportToCSV('retraits', 'month')" style="font-size: 12px;">📤 Export Retraits</button>
+          <button class="btn btn-primary" onclick="loadFeeDistributionChart()" style="font-size: 12px;">🔄 Rafraîchir</button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 28px;">
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">💰 Frais par Type</div>
+          </div>
+          <div style="padding: 16px; height: 300px;">
+            <canvas id="feeDistributionChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">💱 Distribution Devises</div>
+          </div>
+          <div style="padding: 16px; height: 300px;">
+            <canvas id="currencyBreakdownChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">📊 Revenus Cumulatifs (30j)</div>
+          </div>
+          <div style="padding: 16px; height: 300px;">
+            <canvas id="cumulativeRevenueChart"></canvas>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-header">
+            <div class="table-title">👥 Croissance Utilisateurs (30j)</div>
+          </div>
+          <div style="padding: 16px; height: 300px;">
+            <canvas id="userGrowthChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Filters -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">🔍 Filtres Avancés</div>
+        </div>
+        <div style="padding: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+          <div>
+            <label style="font-size: 11px; color: var(--sub); display: block; margin-bottom: 6px;">Période</label>
+            <select id="filter-period" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans);">
+              <option value="today">Aujourd'hui</option>
+              <option value="week">Cette semaine</option>
+              <option value="month" selected>Ce mois</option>
+              <option value="all">Tous les temps</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 11px; color: var(--sub); display: block; margin-bottom: 6px;">Type Export</label>
+            <select id="filter-type" style="width: 100%; padding: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans);">
+              <option value="depots">Dépôts</option>
+              <option value="retraits">Retraits</option>
+              <option value="fees_collected">Frais</option>
+            </select>
+          </div>
+          <button onclick="applyAdvancedFilters()" class="btn btn-primary" style="grid-column: span 2; justify-content: center;">🔍 Appliquer Filtres</button>
+        </div>
+      </div>
+
+      <!-- Search Users -->
+      <div class="table-wrap" style="margin-top: 16px;">
+        <div class="table-header">
+          <div class="table-title">👥 Recherche Utilisateurs</div>
+        </div>
+        <div style="padding: 20px;">
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="search-user-input" placeholder="Email ou ID..." style="flex: 1; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans);">
+            <button id="btn-search-user" class="btn btn-primary" style="padding: 10px 20px;">🔍 Chercher</button>
+          </div>
+          <div id="search-results-container" style="margin-top: 12px; max-height: 400px; overflow-y: auto;"></div>
         </div>
       </div>
     </div>
@@ -416,6 +511,8 @@
   <script src="js/dashboard.js" type="module"></script>
   <script src="js/transactions.js" type="module"></script>
   <script src="js/config.js" type="module"></script>
+  <script src="js/analytics.js" type="module"></script>
+  <script src="js/filters.js" type="module"></script>
 
   <!-- Main Entry Point -->
   <script type="module">
@@ -425,6 +522,8 @@
     import { loadDashboardStats, loadFeesStats } from './js/dashboard.js'
     import { loadDepots, loadRetraits, loadTransactions, loadUsers, updateBadges, approveDepot, approveRetrait } from './js/transactions.js'
     import { saveFeeConfig, saveExchangeRates, saveWalletsConfig, saveStakingConfig, loadRates, setFeeCollectionInterval, applyAllFeeChanges, resetFeeInputs } from './js/config.js'
+    import { exportToCSV, loadFeeDistributionChart, loadCurrencyBreakdownChart, loadCumulativeRevenueChart, loadUserGrowthChart, setupRealtimeUpdates } from './js/analytics.js'
+    import { searchUsers, filterTransactionsByDateRange, filterTransactionsByAmount, filterByUser, getTransactionStats, populateSearchResults } from './js/filters.js'
 
     // Expose functions to global scope for HTML onclick handlers
     window.switchPage = switchPage
@@ -450,6 +549,39 @@
     window.setFeeCollectionInterval = setFeeCollectionInterval
     window.applyAllFeeChanges = applyAllFeeChanges
     window.resetFeeInputs = resetFeeInputs
+    
+    // Analytics functions
+    window.exportToCSV = exportToCSV
+    window.loadFeeDistributionChart = loadFeeDistributionChart
+    window.loadCurrencyBreakdownChart = loadCurrencyBreakdownChart
+    window.loadCumulativeRevenueChart = loadCumulativeRevenueChart
+    window.loadUserGrowthChart = loadUserGrowthChart
+    window.setupRealtimeUpdates = setupRealtimeUpdates
+    
+    // Filter functions
+    window.searchUsers = searchUsers
+    window.filterTransactionsByDateRange = filterTransactionsByDateRange
+    window.filterTransactionsByAmount = filterTransactionsByAmount
+    window.filterByUser = filterByUser
+    window.getTransactionStats = getTransactionStats
+    window.populateSearchResults = populateSearchResults
+
+    // Advanced filters handler
+    async function applyAdvancedFilters() {
+      const period = document.getElementById('filter-period').value
+      const type = document.getElementById('filter-type').value
+      exportToCSV(type, period)
+    }
+    window.applyAdvancedFilters = applyAdvancedFilters
+
+    // Search handler
+    document.getElementById('btn-search-user').addEventListener('click', async () => {
+      const query = document.getElementById('search-user-input').value
+      if (query.length >= 2) {
+        const results = await searchUsers(query)
+        populateSearchResults(results)
+      }
+    })
 
     // Initialize on load
     window.addEventListener('load', () => {

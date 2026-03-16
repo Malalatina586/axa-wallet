@@ -80,9 +80,52 @@ export async function loadDashboardStats() {
     // Load charts
     await loadLast7DaysChart(rateAxeAriary, rateAxeUsdt)
     await loadActiveUsersChart(activeUserIds.size)
+    
+    // Load advanced analytics charts (if on analytics page)
+    await loadFeeDistributionChart()
+    await loadCurrencyBreakdownChart()
+    await loadCumulativeRevenueChart()
+    await loadUserGrowthChart()
 
   } catch (err) {
     console.error('Erreur chargement stats:', err)
+  }
+}
+
+// Import advanced charts
+async function loadFeeDistributionChart() {
+  try {
+    const { loadFeeDistributionChart } = await import('./analytics.js')
+    loadFeeDistributionChart()
+  } catch (err) {
+    console.log('Graphique frais non disponible / pas sur la page analytics')
+  }
+}
+
+async function loadCurrencyBreakdownChart() {
+  try {
+    const { loadCurrencyBreakdownChart } = await import('./analytics.js')
+    loadCurrencyBreakdownChart()
+  } catch (err) {
+    console.log('Graphique devises non disponible / pas sur la page analytics')
+  }
+}
+
+async function loadCumulativeRevenueChart() {
+  try {
+    const { loadCumulativeRevenueChart } = await import('./analytics.js')
+    loadCumulativeRevenueChart()
+  } catch (err) {
+    console.log('Graphique revenus non disponible / pas sur la page analytics')
+  }
+}
+
+async function loadUserGrowthChart() {
+  try {
+    const { loadUserGrowthChart } = await import('./analytics.js')
+    loadUserGrowthChart()
+  } catch (err) {
+    console.log('Graphique utilisateurs non disponible / pas sur la page analytics')
   }
 }
 
